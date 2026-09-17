@@ -1,0 +1,109 @@
+:root {
+  --forest: #1e3f36;
+  --forest-mid: #457143;
+  --sage: #77997b;
+  --sand: #e4d6af;
+  --gold: #e0b76f;
+  --orange: #e58e29;
+  --rust: #cb5026;
+  --coral: #e86a5b;
+  --cream: #efe4c6;
+  --ink: #13241f;
+  --paper: #fffaf0;
+  --white: #ffffff;
+  --line: rgba(30, 63, 54, 0.1);
+  --shadow: 0 16px 40px rgba(203, 80, 38, 0.1);
+  --radius: 28px;
+  --font-headline: "Akshar", sans-serif;
+  --font-body: "Source Sans 3", sans-serif;
+  --font-serif: var(--font-headline);
+  --font-sans: var(--font-body);
+  --header-h: 76px;
+  --nav-h: 118px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--ink);
+  background: #ffffff;
+  font-family: var(--font-body);
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+h1,
+h2,
+h3,
+.hero-title {
+  font-family: var(--font-headline);
+}
+
+.hero-title {
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.body-text {
+  font-family: var(--font-body);
+  font-weight: 400;
+}
+
+button,
+input,
+select,
+textarea,
+label,
+p,
+li,
+small,
+.lede {
+  font-family: var(--font-body);
+}
+
+button,
+input,
+select,
+textarea {
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+}
+
+a {
+  color: inherit;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+button {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 3px;
+}
