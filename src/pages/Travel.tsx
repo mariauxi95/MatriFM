@@ -1,3 +1,4 @@
+import { assetUrl } from "../lib/assets";
 import { useEffect, useState, type ComponentType, type SVGProps } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ClubWhatsAppPanel } from "../components/club/ClubWhatsAppPanel";
@@ -67,7 +68,7 @@ export function Travel() {
   return (
     <main className="travel-page">
       <section className="page-banner travel-banner" aria-hidden>
-        <img src="/images/gallery/kayak.jpg" alt="" />
+        <img src={assetUrl("/images/gallery/kayak.jpg")} alt="" />
       </section>
 
       <div className="page travel-body">

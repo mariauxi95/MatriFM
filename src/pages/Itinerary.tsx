@@ -1,3 +1,4 @@
+import { assetUrl } from "../lib/assets";
 import { useState } from "react";
 import { PinterestBoard } from "../components/PinterestBoard";
 import { itinerary } from "../data/itinerary";
@@ -10,7 +11,7 @@ export function Itinerary() {
   return (
     <main className="itinerary-page">
       <section className="page-banner itinerary-banner" aria-hidden>
-        <img src="/images/gallery/bohemiaentrada.jpg" alt="" />
+        <img src={assetUrl("/images/gallery/bohemiaentrada.jpg")} alt="" />
       </section>
       <div className="page">
       <header className="section-head">

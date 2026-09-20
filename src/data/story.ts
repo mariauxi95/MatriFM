@@ -1,7 +1,8 @@
+import { assetUrl } from "../lib/assets";
 export const storyChapters = [
   {
     id: "distance",
-    image: "/images/gallery/Moto.jpg",
+    image: assetUrl("/images/gallery/Moto.jpg"),
     titleEs: "Ciudades y distancia",
     titleEn: "Cities and distance",
     textEs:
@@ -11,7 +12,7 @@ export const storyChapters = [
   },
   {
     id: "travel",
-    image: "/images/gallery/Marruecos.jpg",
+    image: assetUrl("/images/gallery/Marruecos.jpg"),
     titleEs: "El club de los kilómetros",
     titleEn: "The long-distance club",
     textEs:
@@ -21,7 +22,7 @@ export const storyChapters = [
   },
   {
     id: "sea",
-    image: "/images/gallery/playa.JPG",
+    image: assetUrl("/images/gallery/playa.JPG"),
     titleEs: "Siempre de vuelta al mar",
     titleEn: "Always back to the sea",
     textEs:
@@ -31,7 +32,7 @@ export const storyChapters = [
   },
   {
     id: "yes",
-    image: "/images/gallery/Compromiso.jpg",
+    image: assetUrl("/images/gallery/Compromiso.jpg"),
     titleEs: "El sí que viajó con nosotros",
     titleEn: "The yes that traveled with us",
     textEs:
@@ -41,7 +42,7 @@ export const storyChapters = [
   },
   {
     id: "civil",
-    image: "/images/gallery/civil.jpeg",
+    image: assetUrl("/images/gallery/civil.jpeg"),
     titleEs: "Y ahora, Bohemia",
     titleEn: "And now, Bohemia",
     textEs:

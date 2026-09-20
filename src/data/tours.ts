@@ -1,3 +1,4 @@
+import { assetUrl } from "../lib/assets";
 export const tours = [
   {
     id: "tayrona",
@@ -6,7 +7,7 @@ export const tours = [
     dateEs: "21 de marzo · 10:00 a. m.",
     dateEn: "March 21 · 10:00 a.m.",
     price: "$330.000 COP pp",
-    image: "/images/gallery/playacinto.webp",
+    image: assetUrl("/images/gallery/playacinto.webp"),
     blurbEs: "Playa Cinto y Cristal en lancha, con el Tayrona como telón.",
     blurbEn: "Cinto and Cristal beaches by boat, with Tayrona as the backdrop.",
     descEs:
@@ -24,7 +25,7 @@ export const tours = [
     dateEs: "22 de marzo · 8:00 p. m.",
     dateEn: "March 22 · 8:00 p.m.",
     price: "$160.000 COP pp",
-    image: "/images/gallery/catamaran.png",
+    image: assetUrl("/images/gallery/catamaran.png"),
     blurbEs: "La rumba empieza navegando y termina descalzos en la arena.",
     blurbEn: "The party starts at sea and ends barefoot on the sand.",
     descEs:
@@ -60,7 +61,7 @@ export const tours = [
     dateEs: "24 de marzo · 9:30 a. m. – 5:00 p. m.",
     dateEn: "March 24 · 9:30 a.m. – 5:00 p.m.",
     price: "$160.000 COP pp",
-    image: "/images/gallery/6playas.jpg",
+    image: assetUrl("/images/gallery/6playas.jpg"),
     blurbEs: "Seis playas en un día, sin preocuparte por la logística.",
     blurbEn: "Six beaches in one day, with none of the logistics.",
     descEs:

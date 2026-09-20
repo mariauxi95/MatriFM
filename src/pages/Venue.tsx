@@ -1,3 +1,4 @@
+import { assetUrl } from "../lib/assets";
 import { Link } from "react-router-dom";
 import { useLang } from "../context/Language";
 
@@ -20,12 +21,12 @@ export function Venue() {
   return (
     <main className="venue-page">
       <section className="page-banner" aria-hidden>
-        <video src="/videos/playa_2.mp4" autoPlay muted loop playsInline />
+        <video src={assetUrl("/videos/playa_2.mp4")} autoPlay muted loop playsInline />
       </section>
       <div className="page">
         <section className="venue-split">
           <div className="venue-photo">
-            <img src="/images/gallery/playa.JPG" alt="Bohemia Beach" />
+            <img src={assetUrl("/images/gallery/playa.JPG")} alt="Bohemia Beach" />
             <div className="venue-pin">
               <PinIcon />
               <div>

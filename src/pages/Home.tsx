@@ -1,11 +1,12 @@
+import { assetUrl } from "../lib/assets";
 import { useEffect, useState } from "react";
 import { BookingBar } from "../components/BookingBar";
 import { Countdown } from "../components/Countdown";
 import { useLang } from "../context/Language";
 
 const HERO_PHOTOS = [
-  { src: "/images/gallery/Marruecos2.png", position: "center 52%" },
-  { src: "/images/gallery/panoramica.jpg", position: "center 88%" },
+  { src: assetUrl("/images/gallery/Marruecos2.png"), position: "center 52%" },
+  { src: assetUrl("/images/gallery/panoramica.jpg"), position: "center 88%" },
 ] as const;
 
 const INTERVAL_MS = 10_000;

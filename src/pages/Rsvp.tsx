@@ -1,3 +1,4 @@
+import { assetUrl } from "../lib/assets";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChoiceChip } from "../components/rsvp/ChoiceChip";
 import {
@@ -272,7 +273,7 @@ export function Rsvp() {
         body={t("rsvpHeroBody")}
         cta={t("rsvpHeroCta")}
         badge={t("rsvpHeroBadge")}
-        photoSrc="/images/rsvp-hero.jpg"
+        photoSrc={assetUrl("/images/rsvp-hero.jpg")}
         onCta={scrollToForm}
       />
 

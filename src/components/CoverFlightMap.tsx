@@ -1,8 +1,10 @@
+import { assetUrl } from "../lib/assets";
+
 /** Cover map (V2) with plane flying the heart route. */
 export function CoverFlightMap() {
   return (
     <div className="cover-map" aria-hidden>
-      <img className="cover-map-img" src="/images/mapa-v2.png?v=1" alt="" />
+      <img className="cover-map-img" src={assetUrl("/images/mapa-v2.png?v=1")} alt="" />
       <svg
         className="cover-flight"
         viewBox="0 0 1024 768"
@@ -31,7 +33,7 @@ export function CoverFlightMap() {
 
         <g className="cover-flight-plane">
           <image
-            href="/images/avion-cover.png?v=2"
+            href={assetUrl("/images/avion-cover.png?v=2")}
             width="56"
             height="52"
             x="-28"

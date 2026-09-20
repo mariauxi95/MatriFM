@@ -1,3 +1,4 @@
+import { assetUrl } from "../lib/assets";
 import { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useLang } from "../context/Language";
@@ -24,7 +25,7 @@ export function Layout() {
     <div className="layout">
       <header className="topbar">
         <NavLink to="home" className="brand" onClick={close}>
-          <img className="brand-mark" src="/images/monograma.png" alt="MATRI FM" />
+          <img className="brand-mark" src={assetUrl("/images/monograma.png")} alt="MATRI FM" />
           <span className="brand-text">
             <b>{t("brand")}</b>
             <small>{t("clubLine")}</small>
