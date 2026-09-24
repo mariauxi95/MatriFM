@@ -26,6 +26,84 @@
   box-sizing: border-box;
 }
 
+/*
+  Scrollbar: coral thumb only, fully transparent track, no arrows.
+  Do NOT set scrollbar-width/scrollbar-color on Chromium — those props
+  make Chrome ignore ::-webkit-scrollbar and keep the Windows arrow buttons.
+*/
+@supports (-moz-appearance: none) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(232, 106, 91, 0.75) transparent;
+  }
+}
+
+*::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+  background: transparent;
+  background-color: transparent;
+}
+
+*::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  background-color: transparent;
+}
+
+*::-webkit-scrollbar-button:single-button,
+*::-webkit-scrollbar-button:start,
+*::-webkit-scrollbar-button:end,
+*::-webkit-scrollbar-button:vertical:decrement,
+*::-webkit-scrollbar-button:vertical:increment,
+*::-webkit-scrollbar-button:horizontal:decrement,
+*::-webkit-scrollbar-button:horizontal:increment,
+*::-webkit-scrollbar-button:vertical:start:decrement,
+*::-webkit-scrollbar-button:vertical:end:increment,
+*::-webkit-scrollbar-button:horizontal:start:decrement,
+*::-webkit-scrollbar-button:horizontal:end:increment,
+*::-webkit-scrollbar-button:vertical:start:increment,
+*::-webkit-scrollbar-button:vertical:end:decrement,
+*::-webkit-scrollbar-button:horizontal:start:increment,
+*::-webkit-scrollbar-button:horizontal:end:decrement {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+*::-webkit-scrollbar-track,
+*::-webkit-scrollbar-track-piece {
+  background: transparent;
+  background-color: transparent;
+  border: none;
+  box-shadow: none;
+  -webkit-box-shadow: none;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(232, 106, 91, 0.75);
+  background-color: rgba(232, 106, 91, 0.75);
+  border: none;
+  border-radius: 99px;
+  box-shadow: none;
+  -webkit-box-shadow: none;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #e86a5b;
+  background-color: #e86a5b;
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+  background-color: transparent;
+}
+
 html {
   scroll-behavior: smooth;
 }

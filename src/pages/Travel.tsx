@@ -167,7 +167,7 @@ export function Travel() {
                     <p>{lang === "es" ? tour.dateEs : tour.dateEn}</p>
                     <div className="tour-actions">
                       <button
-                        className="btn ghost"
+                        className="btn tertiary"
                         type="button"
                         onClick={() => setOpenTour(openTour === tour.id ? null : tour.id)}
                       >

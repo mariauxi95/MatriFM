@@ -4,12 +4,12 @@ export function emptyPerson(attendeeType: RsvpPerson["attendeeType"] = "guest"):
   return {
     name: "",
     attendeeType,
-    events: { welcomeDinner: false, weddingDay: false },
+    events: { welcomeDinner: true, weddingDay: true },
     transportation: { outbound: false, return: false },
     food: {
-      mainPreference: "none",
-      sidePreference: "none",
-      dietaryRequirements: [],
+      mainPreference: "both",
+      sidePreference: "both",
+      dietaryRequirements: ["none"],
       dietaryOther: "",
     },
   };
@@ -17,6 +17,22 @@ export function emptyPerson(attendeeType: RsvpPerson["attendeeType"] = "guest"):
 
 export function emptyChild(): RsvpChild {
   return { name: "", age: null, allergiesOrSpecialMeal: "" };
+}
+
+export type EventChoice = "both" | "welcome" | "wedding";
+
+export function eventsFromChoice(choice: EventChoice): RsvpPerson["events"] {
+  return {
+    welcomeDinner: choice === "both" || choice === "welcome",
+    weddingDay: choice === "both" || choice === "wedding",
+  };
+}
+
+export function choiceFromEvents(events: RsvpPerson["events"]): EventChoice | null {
+  if (events.welcomeDinner && events.weddingDay) return "both";
+  if (events.welcomeDinner) return "welcome";
+  if (events.weddingDay) return "wedding";
+  return null;
 }
 
 export type TransportChoice = "there" | "back" | "both" | "none";

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { useGuest } from "../context/GuestSession";
 import { useLang } from "../context/Language";
+import { gifts as giftSeed } from "../data/gifts";
 import { fetchGifts, fetchSettings, submitContribution } from "../lib/sheets";
 import { defaultSettings, formatMoney, fromUsd, methodCurrency, suggestedAmounts } from "../lib/money";
 import type { Currency, GiftPublic, PaymentMethod, PaymentSettings } from "../types";
@@ -9,6 +10,10 @@ import type { Currency, GiftPublic, PaymentMethod, PaymentSettings } from "../ty
 type Step = "amount" | "method" | "pay" | "form" | "done";
 
 const methods: PaymentMethod[] = ["clp", "cad", "zelle", "wise"];
+
+const giftMetaById = Object.fromEntries(
+  giftSeed.map((g) => [g.id, { image: g.image, imagePosition: g.imagePosition }]),
+);
 
 export function Gifts() {
   const { lang, t } = useLang();
@@ -21,10 +26,11 @@ export function Gifts() {
   const [amount, setAmount] = useState(50);
   const [custom, setCustom] = useState("");
   const [copied, setCopied] = useState("");
-  const [name, setName] = useState(guest?.displayName ?? "");
-  const [email, setEmail] = useState(guest?.email ?? "");
+  const name = guest?.displayName ?? "";
+  const email = guest?.email ?? "";
   const [dedication, setDedication] = useState("");
   const [anonymous, setAnonymous] = useState(false);
+  const [readMore, setReadMore] = useState(false);
 
   useEffect(() => {
     fetchGifts().then(setItems);
@@ -71,153 +77,215 @@ export function Gifts() {
   }
 
   return (
-    <main className="page">
-      <header className="section-head">
-        <p className="eyebrow">{t("giftsKicker")}</p>
-        <h1>
-          {t("giftsStart")} <mark className="highlight">{t("giftsMark")}</mark>
-        </h1>
-        <p>
-          {t("giftsIntro1Start")} <mark className="highlight">{t("giftsIntro1Mark")}</mark>
-        </p>
-        <p className="lede">{t("giftsIntro2")}</p>
-        <p className="lede">{t("giftsIntro3")}</p>
-        <p className="lede">{t("giftsIntro4")}</p>
-        <p>Maru & Fer</p>
-        <a className="btn" href="#wishlist">
-          {t("giftsCta")} ↓
-        </a>
-      </header>
-      <div className="gift-grid" id="wishlist">
-        {items.map((item) => {
-          const percent =
-            item.targetUsd != null && item.targetUsd > 0
-              ? Math.min(100, Math.round((item.confirmedUsd / item.targetUsd) * 100))
-              : null;
-          return (
-            <article className="gift-card" key={item.id}>
-              <span style={{ fontSize: "2rem" }}>{item.emoji}</span>
-              <h3>{lang === "es" ? item.titleEs : item.titleEn}</h3>
-              <p>{lang === "es" ? item.descEs : item.descEn}</p>
-              {item.targetUsd != null ? (
-                <>
-                  <b>
-                    {formatMoney(item.confirmedUsd, "USD")} / {formatMoney(item.targetUsd, "USD")}
-                  </b>
-                  <div className="progress" aria-hidden>
-                    <span style={{ width: `${percent ?? 0}%` }} />
-                  </div>
-                  <small>
-                    {percent}% {t("funded")}
-                  </small>
-                  {item.status === "funded" ? <span className="pill">{t("goalDone")} 🎉</span> : null}
-                </>
-              ) : (
-                <b>
-                  {t("received")}: {formatMoney(item.confirmedUsd, "USD")}
-                </b>
-              )}
-              <button className="btn" type="button" onClick={() => setGift(item)}>
-                {t("contribute")}
-              </button>
-            </article>
-          );
-        })}
+    <main className="gifts-page">
+      <div className="page">
+        <header className="section-head gifts-head">
+          <p className="eyebrow">{t("giftsKicker")}</p>
+          <h1>
+            {t("giftsStart")} <mark className="highlight">{t("giftsMark")}</mark>
+          </h1>
+          <p>
+            {t("giftsIntro1Start")} <mark className="highlight">{t("giftsIntro1Mark")}</mark>
+          </p>
+          {readMore ? (
+            <div className="gifts-more">
+              <p className="lede">{t("giftsIntro2")}</p>
+              <p className="lede">{t("giftsIntro3")}</p>
+              <p className="lede">{t("giftsIntro4")}</p>
+              <p className="gifts-sign">{t("giftsSign")}</p>
+            </div>
+          ) : null}
+          <div className="gifts-head-actions">
+            <button
+              className="btn ghost"
+              type="button"
+              onClick={() => setReadMore((v) => !v)}
+              aria-expanded={readMore}
+            >
+              {readMore ? t("giftsReadLess") : t("giftsReadMore")}
+            </button>
+          </div>
+        </header>
+
+        <div className="gift-grid" id="wishlist">
+          {items.map((item) => {
+            const percent =
+              item.targetUsd != null && item.targetUsd > 0
+                ? Math.min(100, Math.round((item.confirmedUsd / item.targetUsd) * 100))
+                : null;
+            const meta = giftMetaById[item.id];
+            const image = item.image ?? meta?.image;
+            const imagePosition = item.imagePosition ?? meta?.imagePosition;
+            return (
+              <article className="gift-card" key={item.id}>
+                <div className="gift-media">
+                  {image ? (
+                    <img
+                      src={image}
+                      alt=""
+                      loading="lazy"
+                      style={imagePosition ? { objectPosition: imagePosition } : undefined}
+                    />
+                  ) : null}
+                  <span className="gift-emoji" aria-hidden>
+                    {item.emoji}
+                  </span>
+                </div>
+                <div className="gift-body">
+                  <h3>{lang === "es" ? item.titleEs : item.titleEn}</h3>
+                  <p>{lang === "es" ? item.descEs : item.descEn}</p>
+                  {item.targetUsd != null ? (
+                    <>
+                      <b className="gift-progress-label">
+                        {formatMoney(item.confirmedUsd, "USD")} / {formatMoney(item.targetUsd, "USD")}
+                      </b>
+                      <div className="progress" aria-hidden>
+                        <span style={{ width: `${percent ?? 0}%` }} />
+                      </div>
+                      <small className="gift-funded">
+                        {percent}% {t("funded")}
+                      </small>
+                      {item.status === "funded" ? <span className="pill">{t("goalDone")}</span> : null}
+                    </>
+                  ) : (
+                    <b className="gift-progress-label">
+                      {t("received")}: {formatMoney(item.confirmedUsd, "USD")}
+                    </b>
+                  )}
+                  <button className="btn tertiary" type="button" onClick={() => setGift(item)}>
+                    {t("contribute")}
+                  </button>
+                </div>
+              </article>
+            );
+          })}
+        </div>
       </div>
 
       {gift ? (
         <div className="drawer-root" onClick={close} role="presentation">
-          <div className="drawer" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal>
-            <button className="btn ghost" type="button" onClick={close}>
-              {t("close")}
-            </button>
-            {step === "amount" ? (
-              <AmountStep
-                gift={gift}
-                currency={currency}
-                suggestions={suggestions}
-                amount={amount}
-                custom={custom}
-                setAmount={setAmount}
-                setCustom={setCustom}
-                onNext={() => setStep("method")}
-              />
-            ) : null}
-            {step === "method" ? (
-              <MethodStep
-                method={method}
-                setMethod={setMethod}
-                onBack={() => setStep("amount")}
-                onNext={() => setStep("pay")}
-              />
-            ) : null}
-            {step === "pay" ? (
-              <PayStep
-                method={method}
-                settings={settings}
-                copied={copied}
-                copy={copy}
-                onBack={() => setStep("method")}
-                onNext={() => setStep("form")}
-              />
-            ) : null}
-            {step === "form" ? (
-              <form onSubmit={onRegister}>
-                <h2>{t("whoAreYou")} 💌</h2>
-                <label className="field">
-                  <span>{t("name")} *</span>
-                  <input required value={name} onChange={(e) => setName(e.target.value)} />
-                </label>
-                <label className="field">
-                  <span>{t("email")}</span>
-                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-                </label>
-                <label className="field">
-                  <span>
-                    {t("amount")} * ({currency})
-                  </span>
-                  <input
-                    required
-                    type="number"
-                    min={1}
-                    step="0.01"
-                    value={localAmount}
-                    onChange={(e) => setCustom(e.target.value)}
-                  />
-                </label>
-                <label className="field">
-                  <span>{t("dedicationPh")}</span>
-                  <textarea value={dedication} onChange={(e) => setDedication(e.target.value)} />
-                </label>
-                <label className="check">
-                  <input type="checkbox" checked={anonymous} onChange={(e) => setAnonymous(e.target.checked)} />
-                  <span>{t("anonymous")}</span>
-                </label>
-                <div className="choice-grid">
+          <div className="drawer gift-drawer" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal>
+            <header className="gift-drawer-head">
+              <div className="gift-drawer-head-top">
+                <button className="btn tertiary gift-drawer-close" type="button" onClick={close}>
+                  {t("close")}
+                </button>
+              </div>
+              {step !== "done" ? (
+                <ol className="gift-drawer-steps" aria-label="Progress">
+                  {(
+                    [
+                      ["amount", "giftStepAmount"],
+                      ["method", "giftStepMethod"],
+                      ["pay", "giftStepPay"],
+                      ["form", "giftStepForm"],
+                    ] as const
+                  ).map(([id, labelKey], index) => {
+                    const order = ["amount", "method", "pay", "form"] as const;
+                    const active = order.indexOf(step as (typeof order)[number]);
+                    const state = index < active ? "is-done" : index === active ? "is-active" : "";
+                    return (
+                      <li key={id} className={state}>
+                        <span aria-hidden>{String(index + 1).padStart(2, "0")}</span>
+                        <b>{t(labelKey)}</b>
+                      </li>
+                    );
+                  })}
+                </ol>
+              ) : null}
+            </header>
+
+            <div className="gift-drawer-body">
+              {step === "amount" ? (
+                <AmountStep
+                  gift={gift}
+                  currency={currency}
+                  suggestions={suggestions}
+                  amount={amount}
+                  custom={custom}
+                  setAmount={setAmount}
+                  setCustom={setCustom}
+                />
+              ) : null}
+              {step === "method" ? <MethodStep method={method} setMethod={setMethod} /> : null}
+              {step === "pay" ? (
+                <PayStep method={method} settings={settings} copied={copied} copy={copy} />
+              ) : null}
+              {step === "form" ? (
+                <form id="gift-register-form" className="gift-drawer-form" onSubmit={onRegister}>
+                  <label className="field">
+                    <span>{t("dedicationPh")}</span>
+                    <textarea
+                      value={dedication}
+                      onChange={(e) => setDedication(e.target.value)}
+                      rows={4}
+                    />
+                  </label>
+                  {!anonymous ? (
+                    <p className="gift-love-sign">{t("giftLoveSign", { name: guest?.displayName ?? name })}</p>
+                  ) : null}
+                  <label className="check">
+                    <input type="checkbox" checked={anonymous} onChange={(e) => setAnonymous(e.target.checked)} />
+                    <span>{t("anonymous")}</span>
+                  </label>
+                </form>
+              ) : null}
+              {step === "done" ? (
+                <div className="success gift-drawer-success">
+                  <p className="eyebrow">{t("giftRegistered")}</p>
+                  <h2>{t("giftThanks")}</h2>
+                  <p>{lang === "es" ? gift.thanksEs : gift.thanksEn}</p>
+                </div>
+              ) : null}
+            </div>
+
+            <footer className="gift-drawer-foot">
+              {step === "amount" ? (
+                <button className="btn" type="button" onClick={() => setStep("method")} disabled={!custom && !amount}>
+                  {t("next")} →
+                </button>
+              ) : null}
+              {step === "method" ? (
+                <>
+                  <button className="btn ghost" type="button" onClick={() => setStep("amount")}>
+                    {t("back")}
+                  </button>
+                  <button className="btn" type="button" onClick={() => setStep("pay")}>
+                    {t("next")} →
+                  </button>
+                </>
+              ) : null}
+              {step === "pay" ? (
+                <>
+                  <button className="btn ghost" type="button" onClick={() => setStep("method")}>
+                    {t("back")}
+                  </button>
+                  <button className="btn" type="button" onClick={() => setStep("form")}>
+                    {t("alreadySent")} →
+                  </button>
+                </>
+              ) : null}
+              {step === "form" ? (
+                <>
                   <button className="btn ghost" type="button" onClick={() => setStep("pay")}>
                     {t("back")}
                   </button>
-                  <button className="btn" type="submit">
+                  <button className="btn" type="submit" form="gift-register-form">
                     {t("registerGift")}
                   </button>
-                </div>
-              </form>
-            ) : null}
-            {step === "done" ? (
-              <div className="success">
-                <h2>
-                  {t("giftRegistered")} 🎉
-                </h2>
-                <p>{t("giftThanks")}</p>
-                <p>{lang === "es" ? gift.thanksEs : gift.thanksEn}</p>
-                <button className="btn" type="button" onClick={close}>
-                  {t("keepGifts")}
-                </button>
-                <Link className="btn ghost" to="../home">
-                  {t("backHome")}
-                </Link>
-              </div>
-            ) : null}
+                </>
+              ) : null}
+              {step === "done" ? (
+                <>
+                  <Link className="btn ghost" to="../home">
+                    {t("backHome")}
+                  </Link>
+                  <button className="btn" type="button" onClick={close}>
+                    {t("keepGifts")}
+                  </button>
+                </>
+              ) : null}
+            </footer>
           </div>
         </div>
       ) : null}
@@ -233,7 +301,6 @@ function AmountStep({
   custom,
   setAmount,
   setCustom,
-  onNext,
 }: {
   gift: GiftPublic;
   currency: Currency;
@@ -242,22 +309,23 @@ function AmountStep({
   custom: string;
   setAmount: (n: number) => void;
   setCustom: (v: string) => void;
-  onNext: () => void;
 }) {
   const { lang, t } = useLang();
   return (
-    <>
-      <p className="eyebrow">{t("youChose")}</p>
+    <div className="gift-amount">
       <h2>
-        {gift.emoji} {lang === "es" ? gift.titleEs : gift.titleEn}
+        <span className="gift-drawer-emoji" aria-hidden>
+          {gift.emoji}
+        </span>
+        {lang === "es" ? gift.titleEs : gift.titleEn}
       </h2>
-      <p>{t("howMuch")}</p>
-      <div className="choice-grid">
+      <p className="gift-amount-lead">{t("howMuch")}</p>
+      <div className="amount-grid" role="group" aria-label={t("howMuch")}>
         {suggestions.map((item) => (
           <button
             key={item.usd}
             type="button"
-            className={!custom && amount === item.usd ? "choice selected" : "choice"}
+            className={!custom && amount === item.usd ? "amount-chip is-selected" : "amount-chip"}
             onClick={() => {
               setCustom("");
               setAmount(item.usd);
@@ -267,67 +335,109 @@ function AmountStep({
           </button>
         ))}
       </div>
-      <label className="field">
+      <label className="field gift-amount-other">
         <span>{t("otherAmount")}</span>
         <input
           type="number"
           min={1}
           step="0.01"
+          inputMode="decimal"
+          placeholder="0"
           value={custom}
           onChange={(e) => setCustom(e.target.value)}
         />
       </label>
-      <button className="btn wide" type="button" onClick={onNext}>
-        {t("next")}
-      </button>
-    </>
+    </div>
+  );
+}
+
+function MethodFlag({ method }: { method: PaymentMethod }) {
+  if (method === "clp") {
+    return (
+      <svg className="method-flag" viewBox="0 0 24 16" aria-hidden>
+        <rect width="24" height="16" fill="#fff" />
+        <rect width="8" height="8" fill="#0039a6" />
+        <rect y="8" width="24" height="8" fill="#d52b1e" />
+        <path
+          fill="#fff"
+          d="M4 2.2 4.55 3.9H6.3l-1.4 1.02.53 1.68L4 5.58l-1.43 1.02.53-1.68L1.7 3.9h1.75z"
+        />
+      </svg>
+    );
+  }
+  if (method === "cad") {
+    return (
+      <svg className="method-flag" viewBox="0 0 24 16" aria-hidden>
+        <rect width="24" height="16" fill="#fff" />
+        <rect width="6" height="16" fill="#d52b1e" />
+        <rect x="18" width="6" height="16" fill="#d52b1e" />
+        <path
+          fill="#d52b1e"
+          d="M12 3.2 12.7 5.4h2.3l-1.85 1.35.7 2.2L12 7.7l-1.85 1.25.7-2.2L9 5.4h2.3z"
+        />
+      </svg>
+    );
+  }
+  if (method === "zelle") {
+    return (
+      <svg className="method-flag" viewBox="0 0 24 16" aria-hidden>
+        <rect width="24" height="16" fill="#bf0a30" />
+        <rect y="1.23" width="24" height="1.23" fill="#fff" />
+        <rect y="3.69" width="24" height="1.23" fill="#fff" />
+        <rect y="6.15" width="24" height="1.23" fill="#fff" />
+        <rect y="8.62" width="24" height="1.23" fill="#fff" />
+        <rect y="11.08" width="24" height="1.23" fill="#fff" />
+        <rect y="13.54" width="24" height="1.23" fill="#fff" />
+        <rect width="10" height="8.6" fill="#3c3b6e" />
+      </svg>
+    );
+  }
+  return (
+    <svg className="method-flag" viewBox="0 0 24 16" aria-hidden>
+      <rect width="24" height="16" rx="2" fill="#9fe870" />
+      <circle cx="12" cy="8" r="4.2" fill="none" stroke="#163300" strokeWidth="1.2" />
+      <path d="M8 8h8M12 3.8c1.4 1.4 1.4 6.8 0 8.4M12 3.8c-1.4 1.4-1.4 6.8 0 8.4" fill="none" stroke="#163300" strokeWidth="1.1" />
+    </svg>
   );
 }
 
 function MethodStep({
   method,
   setMethod,
-  onBack,
-  onNext,
 }: {
   method: PaymentMethod;
   setMethod: (m: PaymentMethod) => void;
-  onBack: () => void;
-  onNext: () => void;
 }) {
   const { t } = useLang();
-  const labels: Record<PaymentMethod, { title: "payClp" | "payCad" | "payZelle" | "payWise"; sub: "payClpSub" | "payCadSub" | "payZelleSub" | "payWiseSub"; flag: string }> = {
-    clp: { title: "payClp", sub: "payClpSub", flag: "🇨🇱" },
-    cad: { title: "payCad", sub: "payCadSub", flag: "🇨🇦" },
-    zelle: { title: "payZelle", sub: "payZelleSub", flag: "🇺🇸" },
-    wise: { title: "payWise", sub: "payWiseSub", flag: "🌎" },
+  const labels: Record<
+    PaymentMethod,
+    { title: "payClp" | "payCad" | "payZelle" | "payWise"; sub: "payClpSub" | "payCadSub" | "payZelleSub" | "payWiseSub" }
+  > = {
+    clp: { title: "payClp", sub: "payClpSub" },
+    cad: { title: "payCad", sub: "payCadSub" },
+    zelle: { title: "payZelle", sub: "payZelleSub" },
+    wise: { title: "payWise", sub: "payWiseSub" },
   };
   return (
-    <>
+    <div className="gift-method">
       <h2>{t("howPay")}</h2>
-      <div className="choice-grid">
+      <div className="method-grid" role="group" aria-label={t("howPay")}>
         {methods.map((item) => (
           <button
             key={item}
             type="button"
-            className={method === item ? "choice selected" : "choice"}
+            className={method === item ? "method-card is-selected" : "method-card"}
             onClick={() => setMethod(item)}
           >
-            {labels[item].flag} {t(labels[item].title)}
-            <br />
+            <span className="method-card-flag">
+              <MethodFlag method={item} />
+            </span>
+            <span className="method-card-title">{t(labels[item].title)}</span>
             <small>{t(labels[item].sub)}</small>
           </button>
         ))}
       </div>
-      <div className="choice-grid">
-        <button className="btn ghost" type="button" onClick={onBack}>
-          {t("back")}
-        </button>
-        <button className="btn" type="button" onClick={onNext}>
-          {t("next")}
-        </button>
-      </div>
-    </>
+    </div>
   );
 }
 
@@ -336,17 +446,14 @@ function PayStep({
   settings,
   copied,
   copy,
-  onBack,
-  onNext,
 }: {
   method: PaymentMethod;
   settings: PaymentSettings;
   copied: string;
   copy: (text: string, key: string) => void;
-  onBack: () => void;
-  onNext: () => void;
 }) {
   const { t } = useLang();
+  const giftEmail = "yanezlfernando@gmail.com";
   const rows =
     method === "clp"
       ? [
@@ -357,27 +464,14 @@ function PayStep({
           ["Cuenta", settings.clpAccountNumber],
           ["Email", settings.clpEmail],
         ]
-      : method === "cad"
-        ? [
-            ["Email", settings.interacEmail],
-            ["Nombre", settings.interacName],
-          ]
-        : method === "zelle"
-          ? [
-              ["Contacto", settings.zelleContact],
-              ["Nombre", settings.zelleName],
-            ]
-          : [
-              ["Link", settings.wiseLink],
-              ["Email", settings.wiseEmail],
-            ];
+      : [["Email", giftEmail]];
 
   const all = rows.map(([k, v]) => `${k}: ${v}`).join("\n");
 
   return (
-    <>
+    <div className="gift-pay">
       <h2>
-        {method === "clp" ? "🇨🇱" : method === "cad" ? "🇨🇦" : method === "zelle" ? "🇺🇸" : "🌎"}{" "}
+        <MethodFlag method={method} />{" "}
         {t(method === "clp" ? "payClp" : method === "cad" ? "payCad" : method === "zelle" ? "payZelle" : "payWise")}
       </h2>
       <div className="pay-copy">
@@ -387,31 +481,29 @@ function PayStep({
               <small>{key}</small>
               <div>{value}</div>
             </div>
-            <button className="btn ghost" type="button" aria-label={`${t("copy")} ${key}`} onClick={() => copy(value, key)}>
+            <button
+              className="btn tertiary"
+              type="button"
+              aria-label={`${t("copy")} ${key}`}
+              onClick={() => copy(value, key)}
+            >
               {copied === key ? t("copied") : t("copy")}
             </button>
           </div>
         ))}
-        {method === "cad" && settings.interacAutodeposit ? <p>Autodeposit activado ✓</p> : null}
         {method === "cad" ? <p>{t("interacNote")}</p> : null}
         {method === "zelle" ? <p>{t("zelleNote")}</p> : null}
         {method === "wise" && settings.wiseLink.startsWith("http") ? (
-          <a className="btn" href={settings.wiseLink} target="_blank" rel="noreferrer">
+          <a className="btn tertiary" href={settings.wiseLink} target="_blank" rel="noreferrer">
             {t("wiseCta")} ↗
           </a>
         ) : null}
-        <button className="btn ghost" type="button" onClick={() => copy(all, "all")}>
-          {copied === "all" ? t("copied") : t("copyAll")}
-        </button>
+        {method === "clp" ? (
+          <button className="btn tertiary" type="button" onClick={() => copy(all, "all")}>
+            {copied === "all" ? t("copied") : t("copyAll")}
+          </button>
+        ) : null}
       </div>
-      <div className="choice-grid">
-        <button className="btn ghost" type="button" onClick={onBack}>
-          {t("back")}
-        </button>
-        <button className="btn coral" type="button" onClick={onNext}>
-          {t("alreadySent")} 🤍
-        </button>
-      </div>
-    </>
+    </div>
   );
 }

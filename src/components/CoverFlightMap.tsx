@@ -1,10 +1,10 @@
 import { assetUrl } from "../lib/assets";
 
-/** Cover map (V2) with plane flying the heart route. */
+/** Cover map with plane flying a compact heart route. */
 export function CoverFlightMap() {
   return (
     <div className="cover-map" aria-hidden>
-      <img className="cover-map-img" src={assetUrl("/images/mapa-v2.png?v=1")} alt="" />
+      <img className="cover-map-img" src={assetUrl("/images/mapa-cover.png?v=2")} alt="" />
       <svg
         className="cover-flight"
         viewBox="0 0 1024 768"
@@ -12,34 +12,50 @@ export function CoverFlightMap() {
         role="presentation"
       >
         <defs>
-          {/* Traced to match the dashed route + Atlantic heart on mapa-v2 */}
+          {/*
+            Left approach → up the right lobe → sharp cleft → down the left lobe →
+            smooth lowered eastbound exit. Sprite nose points ~NE; rotate so +X
+            is forward for animateMotion rotate=auto.
+          */}
           <path
             id="cover-flight-path"
-            d="M 284 476
-               C 295 430 325 380 370 330
-               C 410 285 455 245 490 210
-               C 460 185 410 155 385 115
-               C 365 85 370 50 410 40
-               C 445 32 475 48 490 75
-               C 505 48 545 30 585 42
-               C 625 55 640 95 625 135
-               C 610 175 565 205 520 220
-               C 500 228 485 228 475 222
-               C 520 230 600 225 680 210
-               C 760 195 840 165 920 120
-               C 950 100 975 85 995 70"
+            d="M 278 488
+               C 305 430 345 365 400 315
+               C 445 280 475 258 500 245
+               C 535 235 565 210 575 180
+               C 583 158 575 138 548 135
+               C 530 133 516 145 505 162
+               C 494 145 480 133 462 135
+               C 435 138 425 158 432 182
+               C 442 210 465 235 500 245
+               C 545 255 630 258 740 248
+               C 850 235 940 200 1020 155"
           />
         </defs>
 
+        <use
+          href="#cover-flight-path"
+          fill="none"
+          stroke="#d4a45c"
+          strokeWidth="1.85"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeDasharray="4.5 6.5"
+          opacity="0.95"
+        />
+
         <g className="cover-flight-plane">
-          <image
-            href={assetUrl("/images/avion-cover.png?v=2")}
-            width="56"
-            height="52"
-            x="-28"
-            y="-26"
-            preserveAspectRatio="xMidYMid meet"
-          />
+          {/* Asset nose ~NE (~−45°); SVG+rotate=auto needs nose along +X */}
+          <g transform="rotate(45)">
+            <image
+              href={assetUrl("/images/avion-cover.png?v=2")}
+              width="32"
+              height="30"
+              x="-16"
+              y="-15"
+              preserveAspectRatio="xMidYMid meet"
+            />
+          </g>
           <animateMotion
             className="cover-flight-motion"
             dur="16s"

@@ -3,6 +3,7 @@
 interface ImportMetaEnv {
   readonly VITE_SHEETS_API: string;
   readonly VITE_ADMIN_TOKEN: string;
+  readonly VITE_SPOTIFY_PLAYLIST_URL?: string;
 }
 
 interface ImportMeta {

@@ -1,9 +1,11 @@
+import { assetUrl } from "../lib/assets";
 import type { Gift } from "../types";
 
 export const gifts: Gift[] = [
   {
     id: "claude",
     emoji: "🤖",
+    image: assetUrl("/images/gallery/SA.jpg"),
     titleEs: "6 meses de créditos infinitos de Claude para Fer",
     titleEn: "6 months of infinite Claude credits for Fer",
     descEs: "Porque el matrimonio también se construye a tokens.",
@@ -16,6 +18,8 @@ export const gifts: Gift[] = [
   {
     id: "perrito",
     emoji: "🐶",
+    image: assetUrl("/images/gallery/perrito.jpg"),
+    imagePosition: "center 62%",
     titleEs: "Fondo manutención #UnPerrito4Maru",
     titleEn: "#UnPerrito4Maru support fund",
     descEs: "Porque aparentemente el matrimonio no era suficiente responsabilidad.",
@@ -28,6 +32,8 @@ export const gifts: Gift[] = [
   {
     id: "maletas",
     emoji: "🧳",
+    image: assetUrl("/images/gallery/maletas.jpg"),
+    imagePosition: "center 40%",
     titleEs: "Maletas nuevas para seguir dando vueltas por el mundo",
     titleEn: "New suitcases to keep circling the world",
     descEs: "Las actuales ya conocieron demasiados aeropuertos.",
@@ -40,6 +46,8 @@ export const gifts: Gift[] = [
   {
     id: "nyc",
     emoji: "🗽",
+    image: assetUrl("/images/gallery/cine.jpg"),
+    imagePosition: "center 28%",
     titleEs: "Maratón de musicales en NYC",
     titleEn: "NYC musical marathon",
     descEs: "Broadway, pretzels y cero descanso.",
@@ -52,6 +60,8 @@ export const gifts: Gift[] = [
   {
     id: "pasajes",
     emoji: "✈️",
+    image: assetUrl("/images/gallery/pasajes.jpg"),
+    imagePosition: "center 32%",
     titleEs: "Fondo “¿Y si compramos los pasajes?”",
     titleEn: "“What if we just buy the tickets?” fund",
     descEs: "La pregunta favorita de esta relación.",
@@ -64,6 +74,7 @@ export const gifts: Gift[] = [
   {
     id: "camping",
     emoji: "🏕️",
+    image: assetUrl("/images/gallery/camping-gift.jpg"),
     titleEs: "Escapada de camping",
     titleEn: "Camping getaway",
     descEs: "Estrellas, carpa y café de camping cuestionable.",
@@ -76,6 +87,7 @@ export const gifts: Gift[] = [
   {
     id: "casa",
     emoji: "🛋️",
+    image: assetUrl("/images/gallery/teatro.jpeg"),
     titleEs: "Algo adulto y responsable para nuestra casa",
     titleEn: "Something adult and responsible for our home",
     descEs: "Un mueble que no se arma en 14 horas, ojalá.",
@@ -88,6 +100,7 @@ export const gifts: Gift[] = [
   {
     id: "vamos",
     emoji: "🌴",
+    image: assetUrl("/images/gallery/last.jpg"),
     titleEs: "Fondo “todavía no sabemos dónde, pero vamos”",
     titleEn: "“We don’t know where yet, but we’re going” fund",
     descEs: "El destino se decide después. El viaje, no.",
@@ -100,6 +113,7 @@ export const gifts: Gift[] = [
   {
     id: "foodie",
     emoji: "🍝",
+    image: assetUrl("/images/gallery/chao.jpg"),
     titleEs: "Date night foodie",
     titleEn: "Foodie date night",
     descEs: "Una mesa, dos platos y ninguna reserva improvisada.",
@@ -112,6 +126,7 @@ export const gifts: Gift[] = [
   {
     id: "capricho",
     emoji: "🎮",
+    image: assetUrl("/images/gallery/capricho.jpg"),
     titleEs: "Algo completamente innecesario que claramente “necesitamos”",
     titleEn: "Something completely unnecessary that we clearly “need”",
     descEs: "Investigación científica de caprichos.",
@@ -124,6 +139,7 @@ export const gifts: Gift[] = [
   {
     id: "ikea",
     emoji: "🛒",
+    image: assetUrl("/images/gallery/ikea.jpg"),
     titleEs: "Manual de instrucciones para armar muebles de IKEA sin divorciarse",
     titleEn: "IKEA manual for assembling furniture without divorcing",
     descEs: "Edición limitada: paz matrimonial.",
@@ -136,6 +152,7 @@ export const gifts: Gift[] = [
   {
     id: "roomba",
     emoji: "💸",
+    image: assetUrl("/images/gallery/Marruecos2.png"),
     titleEs: "Fondo para una Roomba con complejo de mascota",
     titleEn: "Fund for a Roomba with a pet complex",
     descEs: "Va a tener nombre. Ya lo sabemos.",
@@ -148,6 +165,7 @@ export const gifts: Gift[] = [
   {
     id: "baile",
     emoji: "💃",
+    image: assetUrl("/images/gallery/last.jpg"),
     titleEs: "Clases de baile en pareja por 3 meses",
     titleEn: "3 months of couple dance classes",
     descEs: "Para que la pista del 20 de marzo no nos tome por sorpresa.",
@@ -160,6 +178,7 @@ export const gifts: Gift[] = [
   {
     id: "barato",
     emoji: "💸",
+    image: assetUrl("/images/gallery/caro.jpg"),
     titleEs: "Fondo “Esto parecía más barato cuando lo planeamos”",
     titleEn: "“This looked cheaper when we planned it” fund",
     descEs: "Aporte libre. Siempre hay un extra.",
@@ -172,6 +191,7 @@ export const gifts: Gift[] = [
   {
     id: "libre",
     emoji: "❤️",
+    image: assetUrl("/images/gallery/vinedo.jpeg"),
     titleEs: "Para lo que Maru & Fer quieran hacer con esto",
     titleEn: "For whatever Maru & Fer want to do with this",
     descEs: "Sin meta. Confianza total.",

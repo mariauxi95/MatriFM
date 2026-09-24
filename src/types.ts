@@ -28,8 +28,8 @@ export type RsvpPerson = {
     return: boolean;
   };
   food: {
-    mainPreference: FoodMain;
-    sidePreference: FoodSide;
+    mainPreference: FoodMain | null;
+    sidePreference: FoodSide | null;
     dietaryRequirements: DietaryNeed[];
     dietaryOther: string;
   };
@@ -60,6 +60,9 @@ export type GiftId = string;
 export type Gift = {
   id: GiftId;
   emoji: string;
+  image?: string;
+  /** CSS object-position for the gift card photo */
+  imagePosition?: string;
   titleEs: string;
   titleEn: string;
   descEs: string;

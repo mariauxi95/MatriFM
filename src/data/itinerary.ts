@@ -16,6 +16,8 @@ export type ItineraryDay = {
   titleEs: string;
   titleEn: string;
   photo: string;
+  /** CSS object-position for the day card photo */
+  photoPosition?: string;
   dressEs: string;
   dressEn: string;
   dressLink: string;
@@ -32,7 +34,8 @@ export const itinerary: ItineraryDay[] = [
     dateLabelEn: "Friday, March 19",
     titleEs: "Last Stop Before “I Do”",
     titleEn: "Last Stop Before “I Do”",
-    photo: assetUrl("/images/gallery/last.jpg"),
+    photo: assetUrl("/images/gallery/civil.jpeg"),
+    photoPosition: "center 28%",
     dressEs: "Blanco · casual playa",
     dressEn: "White · casual beach",
     dressLink: "https://www.pinterest.com/ideas/outfit-blanco-de-playa/901733141207/",

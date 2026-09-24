@@ -11,7 +11,7 @@ export function Itinerary() {
   return (
     <main className="itinerary-page">
       <section className="page-banner itinerary-banner" aria-hidden>
-        <img src={assetUrl("/images/gallery/bohemiaentrada.jpg")} alt="" />
+        <img src={assetUrl("/images/gallery/bohemia-banner.png")} alt="" />
       </section>
       <div className="page">
       <header className="section-head">
@@ -25,7 +25,11 @@ export function Itinerary() {
           const expanded = open === day.id;
           return (
             <article className={`day-card${expanded ? " is-open" : ""}`} key={day.id}>
-              <img src={day.photo} alt="" />
+              <img
+                src={day.photo}
+                alt=""
+                style={day.photoPosition ? { objectPosition: day.photoPosition } : undefined}
+              />
               <div className="day-body">
                 <p className="eyebrow">{lang === "es" ? day.dateLabelEs : day.dateLabelEn}</p>
                 <h2>{lang === "es" ? day.titleEs : day.titleEn}</h2>
@@ -58,7 +62,7 @@ export function Itinerary() {
                     </ul>
                   </div>
                 ) : null}
-                <button className="btn ghost" type="button" onClick={() => setOpen(expanded ? null : day.id)}>
+                <button className="btn tertiary" type="button" onClick={() => setOpen(expanded ? null : day.id)}>
                   {expanded ? t("hideDay") : t("seeDay")}
                 </button>
               </div>

@@ -2,11 +2,14 @@ import { assetUrl } from "../lib/assets";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChoiceChip } from "../components/rsvp/ChoiceChip";
 import {
+  choiceFromEvents,
   choiceFromTransport,
   emptyChild,
   emptyPerson,
+  eventsFromChoice,
   toggleDietary,
   transportFromChoice,
+  type EventChoice,
   type TransportChoice,
 } from "../components/rsvp/model";
 import { RsvpHero } from "../components/rsvp/RsvpHero";
@@ -17,6 +20,7 @@ import { submitRsvp } from "../lib/sheets";
 import type { DietaryNeed, FoodMain, FoodSide, RsvpChild, RsvpPerson } from "../types";
 
 type Phase =
+  | "intro"
   | "guests"
   | "events"
   | "transport"
@@ -51,8 +55,33 @@ function foodLabel(person: RsvpPerson, t: ReturnType<typeof useLang>["t"]) {
     both: t("rsvpBoth"),
     none: t("rsvpNoPref"),
   };
-  return `${mainLabels[person.food.mainPreference]} · ${sideLabels[person.food.sidePreference]}`;
+  const main = person.food.mainPreference ? mainLabels[person.food.mainPreference] : "—";
+  if (person.food.mainPreference === "kids") return main;
+  const side = person.food.sidePreference ? sideLabels[person.food.sidePreference] : "—";
+  return `${main} · ${side}`;
 }
+
+const MAIN_OPTIONS = [
+  ["both", "rsvpBoth"],
+  ["meat", "rsvpMeat"],
+  ["fish", "rsvpFish"],
+  ["kids", "rsvpKidsMenu"],
+] as const;
+
+const SIDE_OPTIONS = [
+  ["both", "rsvpBoth"],
+  ["pasta", "rsvpPasta"],
+  ["rice", "rsvpRice"],
+] as const;
+
+const DIET_OPTIONS = [
+  ["none", "rsvpDietNone"],
+  ["vegetarian", "rsvpVeg"],
+  ["vegan", "rsvpVegan"],
+  ["glutenFree", "rsvpGluten"],
+  ["dairyFree", "rsvpDairy"],
+  ["other", "rsvpOther"],
+] as const;
 
 export function Rsvp() {
   const { t } = useLang();
@@ -62,7 +91,7 @@ export function Rsvp() {
   const childrenLimit = guest?.childrenLimit ?? (hasChildren ? 2 : 0);
 
   const formRef = useRef<HTMLElement>(null);
-  const [phase, setPhase] = useState<Phase>("guests");
+  const [phase, setPhase] = useState<Phase>("intro");
   const [personIndex, setPersonIndex] = useState(0);
   const [people, setPeople] = useState<RsvpPerson[]>(() => [emptyPerson("primary")]);
   const [children, setChildren] = useState<RsvpChild[]>(() =>
@@ -72,6 +101,8 @@ export function Rsvp() {
   const [danceSong, setDanceSong] = useState("");
   const [error, setError] = useState("");
   const [sending, setSending] = useState(false);
+  const [transportPicked, setTransportPicked] = useState(false);
+  const [confirmDecline, setConfirmDecline] = useState(false);
 
   useEffect(() => {
     if (guest?.displayName) {
@@ -84,7 +115,7 @@ export function Rsvp() {
   }, [guest?.displayName]);
 
   useEffect(() => {
-    if (phase === "guests") return;
+    if (phase === "intro") return;
     formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [phase, personIndex, childIndex]);
 
@@ -96,33 +127,57 @@ export function Rsvp() {
   }, [hasChildren, t]);
 
   const progressIndex = useMemo(() => {
-    if (phase === "guests") return 0;
+    if (phase === "intro" || phase === "guests") return 0;
     if (phase === "events" || phase === "transport") return 1;
     if (phase === "food") return 2;
     if (phase === "children") return hasChildren ? 3 : 2;
     return hasChildren ? 4 : 3;
   }, [phase, hasChildren]);
 
+  const groupEvents = people[0]?.events ?? { welcomeDinner: true, weddingDay: true };
+  const groupTransport = people[0]?.transportation ?? { outbound: false, return: false };
+  const eventChoice = choiceFromEvents(groupEvents);
   const current = people[personIndex];
 
   function updatePerson(index: number, patch: Partial<RsvpPerson>) {
     setPeople((list) => list.map((item, i) => (i === index ? { ...item, ...patch } : item)));
   }
 
-  function updatePersonNested(index: number, updater: (person: RsvpPerson) => RsvpPerson) {
+  function updatePersonFood(index: number, updater: (person: RsvpPerson) => RsvpPerson) {
     setPeople((list) => list.map((item, i) => (i === index ? updater(item) : item)));
   }
 
-  function scrollToForm() {
+  function setGroupEvents(choice: EventChoice) {
+    const events = eventsFromChoice(choice);
+    setPeople((list) => list.map((person) => ({ ...person, events })));
+  }
+
+  function setGroupTransport(choice: TransportChoice) {
+    const transportation = transportFromChoice(choice);
+    setTransportPicked(true);
+    setPeople((list) => list.map((person) => ({ ...person, transportation })));
+  }
+
+  function startForm() {
+    setConfirmDecline(false);
+    setError("");
     setPhase("guests");
-    requestAnimationFrame(() => {
-      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function addGuest() {
     if (people.length >= limit) return;
-    setPeople((list) => [...list, emptyPerson("guest")]);
+    setPeople((list) => {
+      const template = list[0] ?? emptyPerson("primary");
+      return [
+        ...list,
+        {
+          ...emptyPerson("guest"),
+          events: { ...template.events },
+          transportation: { ...template.transportation },
+        },
+      ];
+    });
   }
 
   function goFromGuests() {
@@ -142,28 +197,55 @@ export function Rsvp() {
       return;
     }
     setPeople(cleaned);
-    setPersonIndex(0);
     setError("");
+    setConfirmDecline(false);
     setPhase("events");
   }
 
   function goFromEvents() {
-    if (!current?.events.welcomeDinner && !current?.events.weddingDay) {
+    if (!groupEvents.welcomeDinner && !groupEvents.weddingDay) {
       setError(t("rsvpEventsError"));
       return;
     }
+    setPeople((list) =>
+      list.map((person) => ({
+        ...person,
+        events: { ...groupEvents },
+      })),
+    );
     setError("");
     setPhase("transport");
   }
 
   function goFromTransport() {
+    if (!transportPicked) {
+      setError(t("rsvpChoiceError"));
+      return;
+    }
+    setPeople((list) =>
+      list.map((person) => ({
+        ...person,
+        transportation: { ...groupTransport },
+      })),
+    );
+    setError("");
+    setPersonIndex(0);
     setPhase("food");
   }
 
   function goFromFood() {
+    const kidsMenu = current?.food.mainPreference === "kids";
+    if (
+      !current?.food.mainPreference ||
+      (!kidsMenu && !current?.food.sidePreference) ||
+      !current?.food.dietaryRequirements.length
+    ) {
+      setError(t("rsvpChoiceError"));
+      return;
+    }
+    setError("");
     if (personIndex < people.length - 1) {
       setPersonIndex((i) => i + 1);
-      setPhase("events");
       return;
     }
     if (hasChildren) {
@@ -185,10 +267,7 @@ export function Rsvp() {
   function goBack() {
     setError("");
     if (phase === "events") {
-      if (personIndex > 0) {
-        setPersonIndex((i) => i - 1);
-        setPhase("food");
-      } else setPhase("guests");
+      setPhase("guests");
       return;
     }
     if (phase === "transport") {
@@ -196,7 +275,8 @@ export function Rsvp() {
       return;
     }
     if (phase === "food") {
-      setPhase("transport");
+      if (personIndex > 0) setPersonIndex((i) => i - 1);
+      else setPhase("transport");
       return;
     }
     if (phase === "children") {
@@ -252,31 +332,35 @@ export function Rsvp() {
     setPhase("success");
   }
 
+  if (phase === "intro") {
+    return (
+      <main className="rsvp-page">
+        <RsvpHero
+          title={t("rsvpHeroTitle")}
+          body={t("rsvpHeroBody")}
+          cta={t("rsvpHeroCta")}
+          badge={t("rsvpHeroBadge")}
+          photoSrc={assetUrl("/images/rsvp-hero.jpg")}
+          onCta={startForm}
+        />
+      </main>
+    );
+  }
+
   if (phase === "success" || phase === "declined") {
     return (
       <main className="rsvp-page">
         <div className="rsvp-success">
           <div className="rsvp-success-burst" aria-hidden />
           <h1>{phase === "success" ? t("rsvpSuccessTitle") : t("rsvpDeclineOk")}</h1>
-          {phase === "success" ? <p>{t("rsvpSuccessBody")}</p> : null}
+          {phase === "success" ? <p>{t("rsvpSuccessBody")}</p> : <p>{t("rsvpDeclineBody")}</p>}
         </div>
       </main>
     );
   }
 
-  const nextPersonLabel = personIndex < people.length - 1 ? t("rsvpNextGuest") : t("rsvpContinue");
-
   return (
     <main className="rsvp-page">
-      <RsvpHero
-        title={t("rsvpHeroTitle")}
-        body={t("rsvpHeroBody")}
-        cta={t("rsvpHeroCta")}
-        badge={t("rsvpHeroBadge")}
-        photoSrc={assetUrl("/images/rsvp-hero.jpg")}
-        onCta={scrollToForm}
-      />
-
       <section className="rsvp-flow page" ref={formRef} id="rsvp-form">
         <RsvpProgress labels={progressLabels} activeIndex={progressIndex} />
 
@@ -307,7 +391,7 @@ export function Rsvp() {
                   </label>
                 ))}
                 {people.length < limit ? (
-                  <button className="btn ghost" type="button" onClick={addGuest}>
+                  <button className="btn tertiary" type="button" onClick={addGuest}>
                     {t("rsvpAddGuest")}
                   </button>
                 ) : null}
@@ -318,45 +402,62 @@ export function Rsvp() {
               <button className="btn" type="button" onClick={goFromGuests}>
                 {t("rsvpContinue")}
               </button>
-              <button className="btn ghost" type="button" disabled={sending} onClick={decline}>
-                {t("rsvpDecline")}
-              </button>
+            </div>
+            <div className="rsvp-decline-wrap">
+              {confirmDecline ? (
+                <div className="rsvp-decline-confirm">
+                  <p>{t("rsvpDeclineConfirm")}</p>
+                  <div className="rsvp-decline-confirm-actions">
+                    <button className="btn ghost" type="button" disabled={sending} onClick={decline}>
+                      {t("rsvpDeclineConfirmYes")}
+                    </button>
+                    <button
+                      className="btn"
+                      type="button"
+                      onClick={() => setConfirmDecline(false)}
+                    >
+                      {t("rsvpDeclineConfirmNo")}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  className="rsvp-decline-link"
+                  type="button"
+                  disabled={sending}
+                  onClick={() => setConfirmDecline(true)}
+                >
+                  {t("rsvpDecline")}
+                </button>
+              )}
             </div>
           </div>
         ) : null}
 
-        {phase === "events" && current ? (
+        {phase === "events" ? (
           <div className="rsvp-step">
-            <p className="eyebrow">{t("rsvpGuestOf", { n: personIndex + 1, total: people.length })}</p>
-            <h2>
-              {t("rsvpAbout")}
-              <br />
-              <span className="rsvp-name-accent">{current.name || "…"} ✨</span>
-            </h2>
-            <h3>{t("rsvpEventsQ")}</h3>
+            <p className="eyebrow">{t("rsvpStepPlans")}</p>
+            <h2>{t("rsvpEventsQ")}</h2>
+            <p className="rsvp-choice-hint">{t("rsvpHintOne")}</p>
             <div className="rsvp-choice-grid">
-              <ChoiceChip
-                selected={current.events.welcomeDinner}
-                onClick={() =>
-                  updatePersonNested(personIndex, (p) => ({
-                    ...p,
-                    events: { ...p.events, welcomeDinner: !p.events.welcomeDinner },
-                  }))
-                }
-              >
-                {t("rsvpWelcomeDinner")}
-              </ChoiceChip>
-              <ChoiceChip
-                selected={current.events.weddingDay}
-                onClick={() =>
-                  updatePersonNested(personIndex, (p) => ({
-                    ...p,
-                    events: { ...p.events, weddingDay: !p.events.weddingDay },
-                  }))
-                }
-              >
-                {t("rsvpWeddingDay")}
-              </ChoiceChip>
+              {(
+                [
+                  ["both", "rsvpEventsBoth"],
+                  ["welcome", "rsvpWelcomeDinner"],
+                  ["wedding", "rsvpWeddingDay"],
+                ] as const
+              ).map(([value, key]) => (
+                <ChoiceChip
+                  key={value}
+                  selected={eventChoice === value}
+                  onClick={() => {
+                    setError("");
+                    setGroupEvents(value as EventChoice);
+                  }}
+                >
+                  {t(key)}
+                </ChoiceChip>
+              ))}
             </div>
             {error ? <p className="rsvp-error">{error}</p> : null}
             <div className="rsvp-nav">
@@ -370,14 +471,12 @@ export function Rsvp() {
           </div>
         ) : null}
 
-        {phase === "transport" && current ? (
+        {phase === "transport" ? (
           <div className="rsvp-step">
-            <p className="eyebrow">{t("rsvpGuestOf", { n: personIndex + 1, total: people.length })}</p>
-            <h2>
-              {t("rsvpAbout")} <span className="rsvp-name-accent">{current.name}</span>
-            </h2>
-            <h3>{t("rsvpRideQ")}</h3>
+            <p className="eyebrow">{t("rsvpStepPlans")}</p>
+            <h2>{t("rsvpRideQ")}</h2>
             <p className="lede">{t("rsvpRideLead")}</p>
+            <p className="rsvp-choice-hint">{t("rsvpHintOne")}</p>
             <div className="rsvp-legs">
               <div>
                 <b>{t("rsvpLegOut")}</b>
@@ -391,26 +490,25 @@ export function Rsvp() {
             <div className="rsvp-choice-grid">
               {(
                 [
-                  ["there", "rsvpRideThere"],
-                  ["back", "rsvpRideBack"],
                   ["both", "rsvpRideBoth"],
                   ["none", "rsvpRideNone"],
                 ] as const
               ).map(([value, key]) => (
                 <ChoiceChip
                   key={value}
-                  selected={choiceFromTransport(current.transportation) === value}
-                  onClick={() =>
-                    updatePersonNested(personIndex, (p) => ({
-                      ...p,
-                      transportation: transportFromChoice(value as TransportChoice),
-                    }))
+                  selected={
+                    transportPicked && choiceFromTransport(groupTransport) === value
                   }
+                  onClick={() => {
+                    setError("");
+                    setGroupTransport(value as TransportChoice);
+                  }}
                 >
                   {t(key)}
                 </ChoiceChip>
               ))}
             </div>
+            {error ? <p className="rsvp-error">{error}</p> : null}
             <div className="rsvp-nav">
               <button className="btn ghost" type="button" onClick={goBack}>
                 {t("rsvpBack")}
@@ -424,111 +522,170 @@ export function Rsvp() {
 
         {phase === "food" && current ? (
           <div className="rsvp-step">
-            <p className="eyebrow">{t("rsvpGuestOf", { n: personIndex + 1, total: people.length })}</p>
-            <h2>{t("rsvpFoodTitle")}</h2>
-            <p className="lede">{t("rsvpFoodLead")}</p>
-            <h3>{t("rsvpMainPref")}</h3>
-            <div className="rsvp-choice-grid">
-              {(
-                [
-                  ["meat", "rsvpMeat"],
-                  ["fish", "rsvpFish"],
-                  ["both", "rsvpBoth"],
-                  ["none", "rsvpNoPref"],
-                  ["kids", "rsvpKidsMenu"],
-                ] as const
-              ).map(([value, key]) => (
-                <ChoiceChip
-                  key={value}
-                  selected={current.food.mainPreference === value}
-                  onClick={() =>
-                    updatePersonNested(personIndex, (p) => ({
-                      ...p,
-                      food: { ...p.food, mainPreference: value as FoodMain },
-                    }))
-                  }
-                >
-                  {t(key)}
-                </ChoiceChip>
-              ))}
+            <p className="eyebrow">
+              {t("rsvpGuestOf", { n: personIndex + 1, total: people.length })}
+            </p>
+            <h2>
+              {t("rsvpFoodTitle")}
+              <br />
+              <span className="rsvp-name-accent">{current.name}</span>
+            </h2>
+            {personIndex === 0 ? <p className="lede">{t("rsvpFoodLead")}</p> : null}
+
+            <div className="rsvp-food-pair">
+              <div className="rsvp-food-block">
+                <h4>{t("rsvpMainPref")}</h4>
+                <p className="rsvp-choice-hint">{t("rsvpHintOne")}</p>
+                <div className="rsvp-choice-grid">
+                  {MAIN_OPTIONS.map(([value, key]) => (
+                    <ChoiceChip
+                      key={value}
+                      selected={current.food.mainPreference === value}
+                      onClick={() => {
+                        setError("");
+                        updatePersonFood(personIndex, (p) => ({
+                          ...p,
+                          food: {
+                            ...p.food,
+                            mainPreference: value as FoodMain,
+                            sidePreference:
+                              value === "kids" ? null : p.food.sidePreference ?? "both",
+                          },
+                        }));
+                      }}
+                    >
+                      {t(key)}
+                    </ChoiceChip>
+                  ))}
+                </div>
+              </div>
+
+              <div
+                className={`rsvp-food-block${current.food.mainPreference === "kids" ? " is-blocked" : ""}`}
+              >
+                <h4>{t("rsvpSidePref")}</h4>
+                <p className="rsvp-choice-hint">{t("rsvpHintOne")}</p>
+                <div className="rsvp-choice-grid">
+                  {SIDE_OPTIONS.map(([value, key]) => (
+                    <ChoiceChip
+                      key={value}
+                      disabled={current.food.mainPreference === "kids"}
+                      selected={
+                        current.food.mainPreference !== "kids" &&
+                        current.food.sidePreference === value
+                      }
+                      onClick={() => {
+                        setError("");
+                        updatePersonFood(personIndex, (p) => ({
+                          ...p,
+                          food: { ...p.food, sidePreference: value as FoodSide },
+                        }));
+                      }}
+                    >
+                      {t(key)}
+                    </ChoiceChip>
+                  ))}
+                </div>
+              </div>
             </div>
-            <h3>{t("rsvpSidePref")}</h3>
-            <div className="rsvp-choice-grid">
-              {(
-                [
-                  ["pasta", "rsvpPasta"],
-                  ["rice", "rsvpRice"],
-                  ["both", "rsvpBoth"],
-                  ["none", "rsvpNoPref"],
-                ] as const
-              ).map(([value, key]) => (
-                <ChoiceChip
-                  key={value}
-                  selected={current.food.sidePreference === value}
-                  onClick={() =>
-                    updatePersonNested(personIndex, (p) => ({
-                      ...p,
-                      food: { ...p.food, sidePreference: value as FoodSide },
-                    }))
-                  }
-                >
-                  {t(key)}
-                </ChoiceChip>
-              ))}
+
+            <div className="rsvp-food-block">
+              <h4>{t("rsvpDietQ")}</h4>
+              <p className="rsvp-choice-hint">{t("rsvpHintMulti")}</p>
+              <div className="rsvp-choice-grid two">
+                {DIET_OPTIONS.filter(([value]) => value !== "other").map(([value, key]) => (
+                  <ChoiceChip
+                    key={value}
+                    multi
+                    selected={current.food.dietaryRequirements.includes(value)}
+                    onClick={() => {
+                      setError("");
+                      updatePersonFood(personIndex, (p) => {
+                        const next = toggleDietary(
+                          p.food.dietaryRequirements,
+                          value as DietaryNeed,
+                        );
+                        return {
+                          ...p,
+                          food: {
+                            ...p.food,
+                            dietaryRequirements: next,
+                            dietaryOther: next.includes("other") ? p.food.dietaryOther : "",
+                          },
+                        };
+                      });
+                    }}
+                  >
+                    {t(key)}
+                  </ChoiceChip>
+                ))}
+                {current.food.dietaryRequirements.includes("other") ? (
+                  <div className="rsvp-choice is-multi is-selected rsvp-other-inline">
+                    <span className="rsvp-choice-check" aria-hidden>
+                      ✓
+                    </span>
+                    <input
+                      className="rsvp-other-inline-input"
+                      value={current.food.dietaryOther}
+                      placeholder={t("rsvpOtherPh")}
+                      autoFocus
+                      onChange={(e) =>
+                        updatePersonFood(personIndex, (p) => ({
+                          ...p,
+                          food: { ...p.food, dietaryOther: e.target.value },
+                        }))
+                      }
+                    />
+                    <button
+                      type="button"
+                      className="rsvp-other-inline-clear"
+                      aria-label={t("rsvpOther")}
+                      onClick={() => {
+                        updatePersonFood(personIndex, (p) => ({
+                          ...p,
+                          food: {
+                            ...p.food,
+                            dietaryRequirements: toggleDietary(p.food.dietaryRequirements, "other"),
+                            dietaryOther: "",
+                          },
+                        }));
+                      }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ) : (
+                  <ChoiceChip
+                    multi
+                    selected={false}
+                    onClick={() => {
+                      setError("");
+                      updatePersonFood(personIndex, (p) => {
+                        const next = toggleDietary(p.food.dietaryRequirements, "other");
+                        return {
+                          ...p,
+                          food: {
+                            ...p.food,
+                            dietaryRequirements: next,
+                            dietaryOther: next.includes("other") ? p.food.dietaryOther : "",
+                          },
+                        };
+                      });
+                    }}
+                  >
+                    {t("rsvpOther")}
+                  </ChoiceChip>
+                )}
+              </div>
             </div>
-            <h3>{t("rsvpDietQ")}</h3>
-            <div className="rsvp-choice-grid">
-              {(
-                [
-                  ["none", "rsvpDietNone"],
-                  ["vegetarian", "rsvpVeg"],
-                  ["vegan", "rsvpVegan"],
-                  ["glutenFree", "rsvpGluten"],
-                  ["dairyFree", "rsvpDairy"],
-                  ["other", "rsvpOther"],
-                ] as const
-              ).map(([value, key]) => (
-                <ChoiceChip
-                  key={value}
-                  selected={current.food.dietaryRequirements.includes(value)}
-                  onClick={() =>
-                    updatePersonNested(personIndex, (p) => {
-                      const next = toggleDietary(p.food.dietaryRequirements, value as DietaryNeed);
-                      return {
-                        ...p,
-                        food: {
-                          ...p.food,
-                          dietaryRequirements: next,
-                          dietaryOther: next.includes("other") ? p.food.dietaryOther : "",
-                        },
-                      };
-                    })
-                  }
-                >
-                  {t(key)}
-                </ChoiceChip>
-              ))}
-            </div>
-            {current.food.dietaryRequirements.includes("other") ? (
-              <label className="field rsvp-reveal">
-                <span>{t("rsvpOtherMore")}</span>
-                <input
-                  value={current.food.dietaryOther}
-                  onChange={(e) =>
-                    updatePersonNested(personIndex, (p) => ({
-                      ...p,
-                      food: { ...p.food, dietaryOther: e.target.value },
-                    }))
-                  }
-                />
-              </label>
-            ) : null}
+
+            {error ? <p className="rsvp-error">{error}</p> : null}
             <div className="rsvp-nav">
               <button className="btn ghost" type="button" onClick={goBack}>
                 {t("rsvpBack")}
               </button>
               <button className="btn" type="button" onClick={goFromFood}>
-                {nextPersonLabel}
+                {personIndex < people.length - 1 ? t("rsvpNextGuest") : t("rsvpContinue")}
               </button>
             </div>
           </div>
@@ -606,6 +763,22 @@ export function Rsvp() {
                 onChange={(e) => setDanceSong(e.target.value)}
               />
             </label>
+            {import.meta.env.VITE_SPOTIFY_PLAYLIST_URL ? (
+              <a
+                className="btn tertiary rsvp-spotify-btn"
+                href={import.meta.env.VITE_SPOTIFY_PLAYLIST_URL}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <svg className="rsvp-spotify-icon" viewBox="0 0 24 24" aria-hidden>
+                  <path
+                    fill="currentColor"
+                    d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"
+                  />
+                </svg>
+                {t("rsvpSpotifyCta")}
+              </a>
+            ) : null}
             <div className="rsvp-nav">
               <button className="btn ghost" type="button" onClick={goBack}>
                 {t("rsvpBack")}
@@ -641,9 +814,7 @@ export function Rsvp() {
                       none: t("rsvpBusNo"),
                     })}
                   </p>
-                  <p>
-                    Food: {foodLabel(person, t)}
-                  </p>
+                  <p>Food: {foodLabel(person, t)}</p>
                 </article>
               ))}
               {hasChildren && children.some((c) => c.name.trim()) ? (

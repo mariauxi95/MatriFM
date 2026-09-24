@@ -7,13 +7,13 @@ export const defaultSettings: PaymentSettings = {
   clpAccountType: "{{CLP_ACCOUNT_TYPE}}",
   clpAccountNumber: "{{CLP_ACCOUNT_NUMBER}}",
   clpEmail: "{{CLP_EMAIL}}",
-  interacName: "{{INTERAC_NAME}}",
-  interacEmail: "{{INTERAC_EMAIL}}",
+  interacName: "Fernando Yánez",
+  interacEmail: "yanezlfernando@gmail.com",
   interacAutodeposit: true,
-  zelleName: "{{ZELLE_NAME}}",
-  zelleContact: "{{ZELLE_EMAIL_OR_PHONE}}",
+  zelleName: "Fernando Yánez",
+  zelleContact: "yanezlfernando@gmail.com",
   wiseLink: "{{WISE_PAYMENT_LINK}}",
-  wiseEmail: "{{WISE_EMAIL}}",
+  wiseEmail: "yanezlfernando@gmail.com",
   wiseQr: "",
   usdToClp: 950,
   usdToCad: 1.38,
@@ -41,7 +41,8 @@ export function formatMoney(amount: number, currency: Currency) {
   return new Intl.NumberFormat("es-CL", {
     style: "currency",
     currency,
-    maximumFractionDigits: currency === "CLP" ? 0 : 2,
+    maximumFractionDigits: 0,
+    minimumFractionDigits: 0,
   }).format(amount);
 }
 

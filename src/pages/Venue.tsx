@@ -2,7 +2,7 @@ import { assetUrl } from "../lib/assets";
 import { Link } from "react-router-dom";
 import { useLang } from "../context/Language";
 
-const MAP_LINK =
+const MAP_OPEN_LINK =
   "https://www.google.com/maps/place/Bohemia+Beach+Tayrona/@11.2696307,-73.8392084,17z";
 
 function PinIcon() {
@@ -18,6 +18,7 @@ function PinIcon() {
 
 export function Venue() {
   const { t } = useLang();
+
   return (
     <main className="venue-page">
       <section className="page-banner" aria-hidden>
@@ -27,13 +28,6 @@ export function Venue() {
         <section className="venue-split">
           <div className="venue-photo">
             <img src={assetUrl("/images/gallery/playa.JPG")} alt="Bohemia Beach" />
-            <div className="venue-pin">
-              <PinIcon />
-              <div>
-                <b>{t("venuePlace")}</b>
-                <small>{t("venuePlaceSub")}</small>
-              </div>
-            </div>
           </div>
           <div className="venue-copy">
             <h1>
@@ -42,7 +36,7 @@ export function Venue() {
             <p>{t("venueP1")}</p>
             <p>{t("venueP2")}</p>
             <p>{t("venueP3")}</p>
-            <a className="btn ghost venue-map" href={MAP_LINK} target="_blank" rel="noreferrer">
+            <a className="btn ghost venue-map" href={MAP_OPEN_LINK} target="_blank" rel="noreferrer">
               <PinIcon />
               {t("openMaps")}
               <span aria-hidden>↗</span>
@@ -50,12 +44,29 @@ export function Venue() {
           </div>
         </section>
 
-        <section className="venue-stay-teaser">
-          <h2>{t("stayVenueTeaserTitle")}</h2>
-          <p>{t("stayVenueTeaserText")}</p>
-          <Link className="btn ghost" to="../viaje#travel-stay">
-            {t("stayVenueTeaserCta")} →
-          </Link>
+        <section className="venue-stay">
+          <div className="venue-stay-copy">
+            <h2>{t("stayVenueTeaserTitle")}</h2>
+            <p>{t("stayVenueTeaserText")}</p>
+            <Link className="btn" to="../viaje#travel-stay">
+              {t("stayVenueTeaserCta")}
+              <span aria-hidden>→</span>
+            </Link>
+          </div>
+          <div className="venue-photo">
+            <img
+              src={assetUrl("/images/gallery/bohemiaentrada.jpg")}
+              alt={t("venuePlace")}
+              loading="lazy"
+            />
+            <div className="venue-pin venue-pin--top">
+              <PinIcon />
+              <div>
+                <b>{t("venuePlace")}</b>
+                <small>{t("venuePlaceSub")}</small>
+              </div>
+            </div>
+          </div>
         </section>
       </div>
     </main>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Navigate, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { CoverFlightMap } from "../components/CoverFlightMap";
 import { LangToggle } from "../components/LangToggle";
 import { useGuest } from "../context/GuestSession";
@@ -10,7 +10,7 @@ import type { Guest } from "../types";
 export function Cover() {
   const { code = "" } = useParams();
   const navigate = useNavigate();
-  const { guest, setGuest, opened, openInvite } = useGuest();
+  const { guest, setGuest, openInvite } = useGuest();
   const { t } = useLang();
   const [found, setFound] = useState<Guest | null>(() => findLocalGuest(code) ?? guest);
 
@@ -35,17 +35,13 @@ export function Cover() {
     };
   }, [code, setGuest]);
 
-  if (opened && (found || guest)) {
-    return <Navigate to="home" replace />;
-  }
-
   if (!found) {
     return (
       <main className="cover">
         <CoverFlightMap />
         <div className="cover-veil" />
+        <LangToggle />
         <div className="cover-inner">
-          <LangToggle />
           <p className="cover-passport">{t("weddingPassport")}</p>
           <p>{t("invalidCode")}</p>
         </div>
@@ -59,8 +55,8 @@ export function Cover() {
     <main className="cover">
       <CoverFlightMap />
       <div className="cover-veil" />
+      <LangToggle />
       <div className="cover-inner">
-        <LangToggle />
         <p className="cover-passport">{t("weddingPassport")}</p>
         <div className="stamp-wrap">
           <div className="stamp">
@@ -73,7 +69,7 @@ export function Cover() {
         <p className="cover-tagline">{t("packBags")}</p>
         <p className="cover-date">20 · MAR · 2027</p>
         <button
-          className="btn coral wide"
+          className="btn wide"
           type="button"
           disabled={!found}
           onClick={() => {

@@ -1,6 +1,6 @@
 import { assetUrl } from "../lib/assets";
-import { useState } from "react";
-import { NavLink, Outlet } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useLang } from "../context/Language";
 import { LangToggle } from "./LangToggle";
 
@@ -10,16 +10,22 @@ const links = [
   { to: "itinerario", key: "navItinerary" as const },
   { to: "regalos", key: "navGifts" as const },
   { to: "viaje", key: "navTravel" as const },
-  { to: "boda", key: "navStory" as const },
 ];
 
 export function Layout() {
   const { t } = useLang();
+  const location = useLocation();
+  const mainRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
 
   function close() {
     setOpen(false);
   }
+
+  useEffect(() => {
+    setOpen(false);
+    mainRef.current?.scrollTo({ top: 0 });
+  }, [location.pathname]);
 
   return (
     <div className="layout">
@@ -40,7 +46,7 @@ export function Layout() {
         </nav>
         <div className="topbar-end">
           <LangToggle />
-          <NavLink className="btn nav-cta" to="rsvp" onClick={close}>
+          <NavLink className="btn ghost nav-cta" to="rsvp" onClick={close}>
             {t("confirm")}
           </NavLink>
           <button
@@ -63,12 +69,14 @@ export function Layout() {
               {t(link.key)}
             </NavLink>
           ))}
-          <NavLink className="btn nav-cta" to="rsvp" onClick={close}>
+          <NavLink className="btn ghost nav-cta" to="rsvp" onClick={close}>
             {t("confirm")}
           </NavLink>
         </nav>
       ) : null}
-      <Outlet />
+      <div className="layout-main" ref={mainRef}>
+        <Outlet />
+      </div>
     </div>
   );
 }
