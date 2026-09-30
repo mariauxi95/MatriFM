@@ -3,6 +3,9 @@ import { useEffect, useState, type ComponentType, type SVGProps } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ClubWhatsAppPanel } from "../components/club/ClubWhatsAppPanel";
 import { StaySection } from "../components/stay/StaySection";
+import { DocsSection } from "../components/travel/DocsSection";
+import { TransportSection } from "../components/travel/TransportSection";
+import { ToursSection } from "../components/travel/ToursSection";
 import {
   IconAccessibility,
   IconBed,
@@ -11,7 +14,6 @@ import {
   IconPassport,
   IconWhatsApp,
 } from "../components/travel/TravelIcons";
-import { tours } from "../data/tours";
 import { useLang } from "../context/Language";
 import type { MessageKey } from "../i18n";
 
@@ -38,10 +40,9 @@ function sectionFromHash(hash: string): SectionId | null {
 }
 
 export function Travel() {
-  const { lang, t } = useLang();
+  const { t } = useLang();
   const location = useLocation();
   const [active, setActive] = useState<SectionId | null>(() => sectionFromHash(window.location.hash));
-  const [openTour, setOpenTour] = useState<string | null>(null);
 
   useEffect(() => {
     const fromHash = sectionFromHash(location.hash);
@@ -109,10 +110,7 @@ export function Travel() {
 
         {active === "docs" ? (
           <section className="travel-section" id="travel-docs">
-            <h2>{t("docsTitle")}</h2>
-            <p>{t("docsP1")}</p>
-            <p>{t("docsP2")}</p>
-            <p>{t("docsP3")}</p>
+            <DocsSection />
             <button className="travel-back" type="button" onClick={closeSection}>
               ↑ {t("travelBackMenu")}
             </button>
@@ -121,8 +119,7 @@ export function Travel() {
 
         {active === "transport" ? (
           <section className="travel-section" id="travel-transport">
-            <h2>{t("transportTitle")}</h2>
-            <p>{t("transportText")}</p>
+            <TransportSection />
             <button className="travel-back" type="button" onClick={closeSection}>
               ↑ {t("travelBackMenu")}
             </button>
@@ -153,59 +150,7 @@ export function Travel() {
           </section>
         ) : null}
 
-        {active === "tours" ? (
-          <section className="travel-section" id="travel-tours">
-            <h2>{t("toursTitle")}</h2>
-            <p className="lede">{t("toursText")}</p>
-            <div className="tour-grid">
-              {tours.map((tour) => (
-                <article className={`tour-card${openTour === tour.id ? " is-open" : ""}`} key={tour.id}>
-                  <img src={tour.image} alt="" />
-                  <div className="tour-body">
-                    <span className="pill">{tour.price}</span>
-                    <h3>{lang === "es" ? tour.nameEs : tour.nameEn}</h3>
-                    <p>{lang === "es" ? tour.dateEs : tour.dateEn}</p>
-                    <div className="tour-actions">
-                      <button
-                        className="btn tertiary"
-                        type="button"
-                        onClick={() => setOpenTour(openTour === tour.id ? null : tour.id)}
-                      >
-                        {openTour === tour.id ? t("hideDay") : t("seeDay")}
-                      </button>
-                      <a className="btn" href={tour.bookLink} onClick={(e) => e.preventDefault()}>
-                        {t("bookTour")}
-                      </a>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-            {tours
-              .filter((tour) => tour.id === openTour)
-              .map((tour) => (
-                <section className="card" key={`${tour.id}-detail`}>
-                  <div className="card-body">
-                    <h3>{lang === "es" ? tour.nameEs : tour.nameEn}</h3>
-                    <p>{lang === "es" ? tour.blurbEs : tour.blurbEn}</p>
-                    <p>{lang === "es" ? tour.descEs : tour.descEn}</p>
-                    <b>{t("includes")}</b>
-                    <ul>
-                      {(lang === "es" ? tour.includesEs : tour.includesEn).map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
-                    <a className="btn" href={tour.bookLink} onClick={(e) => e.preventDefault()}>
-                      {t("bookTour")}
-                    </a>
-                  </div>
-                </section>
-              ))}
-            <button className="travel-back" type="button" onClick={closeSection}>
-              ↑ {t("travelBackMenu")}
-            </button>
-          </section>
-        ) : null}
+        {active === "tours" ? <ToursSection onBack={closeSection} /> : null}
 
         {active === "club" ? (
           <section className="travel-section" id="travel-club">

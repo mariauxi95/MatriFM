@@ -1,75 +1,68 @@
 import { assetUrl } from "../lib/assets";
-export const tours = [
+import { tourPaymentUrls, type TourPaymentKey } from "./tourPayments";
+
+export type Tour = {
+  id: string;
+  paymentKey: TourPaymentKey;
+  title: string;
+  subtitle: string;
+  date: string;
+  time: string;
+  pricePerPerson: number;
+  meetingPoint: string;
+  description: string;
+  note?: string;
+  image: string;
+};
+
+export const tours: Tour[] = [
   {
-    id: "tayrona",
-    nameEs: "Tour dos playas · Parque Tayrona",
-    nameEn: "Two beaches tour · Tayrona Park",
-    dateEs: "21 de marzo · 10:00 a. m.",
-    dateEn: "March 21 · 10:00 a.m.",
-    price: "$330.000 COP pp",
-    image: assetUrl("/images/gallery/playacinto.webp"),
-    blurbEs: "Playa Cinto y Cristal en lancha, con el Tayrona como telón.",
-    blurbEn: "Cinto and Cristal beaches by boat, with Tayrona as the backdrop.",
-    descEs:
-      "Recorrido en lanchas con capacidad hasta de 35 personas. El principal atractivo es el Parque Nacional Natural Tayrona y sus playas de arena blanca en un entorno natural.",
-    descEn:
-      "A boat ride for up to 35 people. The highlight is Tayrona National Natural Park and its white-sand beaches in a wild setting.",
-    includesEs: ["Transporte terrestre y marítimo desde el hotel", "Equipo de snorkel", "Guía profesional"],
-    includesEn: ["Land and sea transport from the hotel", "Snorkel gear", "Professional guide"],
-    bookLink: "#",
+    id: "buritaca",
+    paymentKey: "buritaca_payment_url",
+    title: "Buritaca & Río Guachaca",
+    subtitle: "Celebremos la despedida de la boda",
+    date: "Domingo 21 de marzo",
+    time: "11:00 a 17:30 hrs",
+    pricePerPerson: 130000,
+    meetingPoint: "Bohemia Beach",
+    description:
+      "Un plan relajado para cerrar el fin de semana entre naturaleza y agua. Recorreremos la zona de Buritaca y el río Guachaca, disfrutando de paisajes tropicales y tiempo para compartir en grupo.",
+    note: "En Buritaca existe la opción de hacer tubing por cuenta propia.",
+    image: assetUrl("/images/gallery/kayak.jpg"),
   },
   {
-    id: "catamaran",
-    nameEs: "Tour fiesta tropical en katamarán",
-    nameEn: "Tropical party catamaran tour",
-    dateEs: "22 de marzo · 8:00 p. m.",
-    dateEn: "March 22 · 8:00 p.m.",
-    price: "$160.000 COP pp",
+    id: "katamaran",
+    paymentKey: "katamaran_payment_url",
+    title: "Fiesta en Katamarán",
+    subtitle: "Porque aún nos quedamos con ganas de más fiesta",
+    date: "Lunes 22 de marzo",
+    time: "18:00 a 22:00 hrs",
+    pricePerPerson: 155000,
+    meetingPoint: "Por confirmar",
+    description:
+      "Una noche diferente para seguir celebrando juntos en el Caribe. Música, mar y ambiente de fiesta a bordo de un catamarán para disfrutar Santa Marta desde otra perspectiva.",
+    note: "Niños desde 5 años pagan tarifa.",
     image: assetUrl("/images/gallery/catamaran.png"),
-    blurbEs: "La rumba empieza navegando y termina descalzos en la arena.",
-    blurbEn: "The party starts at sea and ends barefoot on the sand.",
-    descEs:
-      "¿Listo para vivir la rumba más top de Santa Marta? Aquí la fiesta empieza navegando… y termina descalzo en la arena.",
-    descEn:
-      "Ready for Santa Marta’s best party at sea? The night starts sailing and ends barefoot on the sand.",
-    includesEs: [
-      "Zarpe desde El Rodadero en katamarán",
-      "Barra libre de licores a bordo",
-      "Recorrido panorámico hasta la Bahía de Santa Marta",
-      "Desembarque exclusivo en Playa Inca Inca",
-      "Snack de bienvenida",
-      "Fiesta en la playa: DJ, baile, show y hora loca",
-      "Regreso en katamarán al Rodadero",
-      "Dress code: blanco",
-    ],
-    includesEn: [
-      "Departure from El Rodadero on a catamaran",
-      "Open bar on board",
-      "Scenic ride to Santa Marta Bay",
-      "Exclusive landing at Inca Inca Beach",
-      "Welcome snack",
-      "Beach party: DJ, dancing, show and hora loca",
-      "Return to El Rodadero by catamaran",
-      "Dress code: white",
-    ],
-    bookLink: "#",
   },
   {
-    id: "six",
-    nameEs: "Tour 6 playas",
-    nameEn: "6 beaches tour",
-    dateEs: "24 de marzo · 9:30 a. m. – 5:00 p. m.",
-    dateEn: "March 24 · 9:30 a.m. – 5:00 p.m.",
-    price: "$160.000 COP pp",
-    image: assetUrl("/images/gallery/6playas.jpg"),
-    blurbEs: "Seis playas en un día, sin preocuparte por la logística.",
-    blurbEn: "Six beaches in one day, with none of the logistics.",
-    descEs:
-      "Recorre 6 playas en un solo día. Salida desde la Marina Internacional de Santa Marta. Visitamos Playa Blanca, Inca Inca, Playa Calderón, Taganga, Playa Grande y Playaca.",
-    descEn:
-      "See six beaches in a single day. Departure from Santa Marta International Marina. We visit Playa Blanca, Inca Inca, Calderón, Taganga, Playa Grande and Playaca.",
-    includesEs: ["Entrada a la marina", "Snacks", "Frutas", "Bebidas", "Almuerzo típico"],
-    includesEn: ["Marina entrance", "Snacks", "Fruit", "Drinks", "Typical lunch"],
-    bookLink: "#",
+    id: "cinto",
+    paymentKey: "cinto_payment_url",
+    title: "Cinto & Playa Cristal",
+    subtitle: "¿Cómo no vivir esta aventura?",
+    date: "Martes 23 de marzo",
+    time: "9:00 a 17:30 hrs",
+    pricePerPerson: 185000,
+    meetingPoint: "Recepción Hotel Tamacá",
+    description:
+      "Un día completo para descubrir dos de las playas más especiales de Tayrona. La experiencia combina recorrido marítimo, paisajes del Parque Tayrona y tiempo para disfrutar de las aguas de Cinto y Playa Cristal.",
+    image: assetUrl("/images/gallery/playacinto.webp"),
   },
 ];
+
+export function tourPaymentUrl(tour: Tour) {
+  return tourPaymentUrls[tour.paymentKey];
+}
+
+export function formatCop(amount: number) {
+  return `$${new Intl.NumberFormat("es-CO").format(amount)} COP`;
+}

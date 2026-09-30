@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { CoverFlightMap } from "../components/CoverFlightMap";
+import { CoverIntro, introAlreadySeen, markIntroSeen } from "../components/CoverIntro";
 import { LangToggle } from "../components/LangToggle";
 import { useGuest } from "../context/GuestSession";
 import { useLang } from "../context/Language";
@@ -13,6 +14,12 @@ export function Cover() {
   const { guest, setGuest, openInvite } = useGuest();
   const { t } = useLang();
   const [found, setFound] = useState<Guest | null>(() => findLocalGuest(code) ?? guest);
+  const [showIntro, setShowIntro] = useState(() => !introAlreadySeen());
+
+  function finishIntro() {
+    markIntroSeen();
+    setShowIntro(false);
+  }
 
   useEffect(() => {
     const local = findLocalGuest(code);
@@ -35,11 +42,12 @@ export function Cover() {
     };
   }, [code, setGuest]);
 
+  if (showIntro) return <CoverIntro onDone={finishIntro} />;
+
   if (!found) {
     return (
       <main className="cover">
         <CoverFlightMap />
-        <div className="cover-veil" />
         <LangToggle />
         <div className="cover-inner">
           <p className="cover-passport">{t("weddingPassport")}</p>
@@ -54,7 +62,6 @@ export function Cover() {
   return (
     <main className="cover">
       <CoverFlightMap />
-      <div className="cover-veil" />
       <LangToggle />
       <div className="cover-inner">
         <p className="cover-passport">{t("weddingPassport")}</p>
@@ -67,7 +74,6 @@ export function Cover() {
           </div>
         </div>
         <p className="cover-tagline">{t("packBags")}</p>
-        <p className="cover-date">20 · MAR · 2027</p>
         <button
           className="btn wide"
           type="button"

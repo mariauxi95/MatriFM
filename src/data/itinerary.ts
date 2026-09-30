@@ -15,6 +15,8 @@ export type ItineraryDay = {
   dateLabelEn: string;
   titleEs: string;
   titleEn: string;
+  /** Headline time shown on the day card. */
+  time: string;
   photo: string;
   /** CSS object-position for the day card photo */
   photoPosition?: string;
@@ -34,6 +36,7 @@ export const itinerary: ItineraryDay[] = [
     dateLabelEn: "Friday, March 19",
     titleEs: "Last Stop Before “I Do”",
     titleEn: "Last Stop Before “I Do”",
+    time: "7:00 p. m.",
     photo: assetUrl("/images/gallery/civil.jpeg"),
     photoPosition: "center 28%",
     dressEs: "Blanco · casual playa",
@@ -43,11 +46,11 @@ export const itinerary: ItineraryDay[] = [
     pinterestTitle: "Outfit Blanco Playa",
     events: [
       {
-        time: "9:00 a. m.",
+        time: "9:30 a. m.",
         titleEs: "Salida en bus desde Santa Marta hacia Bohemia Beach",
         titleEn: "Bus departure from Santa Marta to Bohemia Beach",
-        placeEs: "Lugar: por definir",
-        placeEn: "Meeting point: TBD",
+        placeEs: "Centro de Santa Marta",
+        placeEn: "Downtown Santa Marta",
         image: assetUrl("/images/itinerary/bus.png"),
       },
       {
@@ -103,11 +106,14 @@ export const itinerary: ItineraryDay[] = [
     dateLabelEn: "Saturday, March 20",
     titleEs: "Matrimonio Maru & Fer ❤️",
     titleEn: "Wedding Maru & Fer ❤️",
+    time: "4:30 p. m.",
     photo: assetUrl("/images/gallery/Compromiso.jpg"),
     dressEs: "Formal playa",
     dressEn: "Beach formal",
-    dressLink: "https://www.pinterest.com/ideas/vestidos-para-boda-en-la-playa/954146842393/",
-    pinterestBoard: "https://www.pinterest.com/ideas/vestidos-para-boda-en-la-playa/954146842393/",
+    dressLink:
+      "https://cl.pinterest.com/search/pins/?q=outfit%20matrimonio%20playa&rs=ac&len=23&source_id=ac_uq6ko0E5&eq=matrimonio%20playa%20outfit&etslf=3156",
+    pinterestBoard:
+      "https://cl.pinterest.com/search/pins/?q=outfit%20matrimonio%20playa&rs=ac&len=23&source_id=ac_uq6ko0E5&eq=matrimonio%20playa%20outfit&etslf=3156",
     pinterestTitle: "Dress code Matrimonio Playa",
     reservedColors: [
       { hex: "#f7f4ee", labelEs: "Blanco", labelEn: "White" },
@@ -163,6 +169,7 @@ export const itinerary: ItineraryDay[] = [
     dateLabelEn: "Sunday, March 21",
     titleEs: "No es más que un hasta luego",
     titleEn: "Just a see you later",
+    time: "10:30 a. m.",
     photo: assetUrl("/images/gallery/chao.jpg"),
     dressEs: "Ropa cómoda de playa / viaje",
     dressEn: "Comfortable beach / travel clothes",
@@ -184,9 +191,15 @@ export const itinerary: ItineraryDay[] = [
         optional: true,
       },
       {
+        time: "11:00 a. m.",
+        titleEs: "Bus de regreso al centro de Santa Marta",
+        titleEn: "Bus back to downtown Santa Marta",
+        image: assetUrl("/images/itinerary/bus.png"),
+      },
+      {
         time: "6:00 p. m.",
-        titleEs: "Buses de regreso a Santa Marta",
-        titleEn: "Buses back to Santa Marta",
+        titleEs: "Bus de regreso al centro de Santa Marta",
+        titleEn: "Bus back to downtown Santa Marta",
         image: assetUrl("/images/itinerary/bus.png"),
       },
     ],

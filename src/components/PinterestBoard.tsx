@@ -29,30 +29,38 @@ function loadPinScript() {
 
 export function PinterestBoard({ url, title }: { url: string; title: string }) {
   const id = useId();
+  const isSearch = url.includes("/search/");
 
   useEffect(() => {
+    if (isSearch) return;
     const timer = window.setTimeout(() => {
       void loadPinScript();
     }, 50);
     return () => window.clearTimeout(timer);
-  }, [url, id]);
+  }, [url, id, isSearch]);
 
   return (
     <section className="pin-board card">
       <div className="card-body">
         <p className="eyebrow">Pinterest</p>
         <h2>{title}</h2>
-        <div className="pin-embed" key={`${id}-${url}`}>
-          <a
-            data-pin-do="embedBoard"
-            data-pin-board-width="900"
-            data-pin-scale-height="340"
-            data-pin-scale-width="100"
-            href={url}
-          >
+        {isSearch ? (
+          <a className="btn" href={url} target="_blank" rel="noreferrer">
             {title}
           </a>
-        </div>
+        ) : (
+          <div className="pin-embed" key={`${id}-${url}`}>
+            <a
+              data-pin-do="embedBoard"
+              data-pin-board-width="900"
+              data-pin-scale-height="340"
+              data-pin-scale-width="100"
+              href={url}
+            >
+              {title}
+            </a>
+          </div>
+        )}
       </div>
     </section>
   );

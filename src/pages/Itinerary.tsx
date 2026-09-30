@@ -1,18 +1,23 @@
-import { assetUrl } from "../lib/assets";
 import { useState } from "react";
+import { DayTimeline } from "../components/itinerary/DayTimeline";
 import { PinterestBoard } from "../components/PinterestBoard";
 import { itinerary } from "../data/itinerary";
 import { useLang } from "../context/Language";
+import type { MessageKey } from "../i18n";
+
+const DETAIL_TITLE: Record<string, MessageKey> = {
+  fri: "itineraryFriTitle",
+  sat: "itinerarySatTitle",
+  sun: "itinerarySunTitle",
+};
 
 export function Itinerary() {
   const { lang, t } = useLang();
-  const [open, setOpen] = useState<string | null>(null);
+  const [dressOpen, setDressOpen] = useState<string | null>(null);
+  const [detailOpen, setDetailOpen] = useState<string | null>(null);
 
   return (
     <main className="itinerary-page">
-      <section className="page-banner itinerary-banner" aria-hidden>
-        <img src={assetUrl("/images/gallery/bohemia-banner.png")} alt="" />
-      </section>
       <div className="page">
       <header className="section-head">
         <p className="eyebrow">{t("itineraryKicker")}</p>
@@ -22,9 +27,10 @@ export function Itinerary() {
       </header>
       <div className="day-grid">
         {itinerary.map((day) => {
-          const expanded = open === day.id;
+          const dressExpanded = dressOpen === day.id;
+          const detailExpanded = detailOpen === day.id;
           return (
-            <article className={`day-card${expanded ? " is-open" : ""}`} key={day.id}>
+            <article className={`day-card${dressExpanded || detailExpanded ? " is-open" : ""}`} key={day.id}>
               <img
                 src={day.photo}
                 alt=""
@@ -33,11 +39,13 @@ export function Itinerary() {
               <div className="day-body">
                 <p className="eyebrow">{lang === "es" ? day.dateLabelEs : day.dateLabelEn}</p>
                 <h2>{lang === "es" ? day.titleEs : day.titleEn}</h2>
+                <p className="day-time">{day.time}</p>
                 {day.pinterestBoard ? (
                   <button
                     className="pill-link"
                     type="button"
-                    onClick={() => setOpen(expanded ? null : day.id)}
+                    aria-expanded={dressExpanded}
+                    onClick={() => setDressOpen(dressExpanded ? null : day.id)}
                   >
                     {t("dresscode")}: {lang === "es" ? day.dressEs : day.dressEn}
                   </button>
@@ -62,8 +70,13 @@ export function Itinerary() {
                     </ul>
                   </div>
                 ) : null}
-                <button className="btn tertiary" type="button" onClick={() => setOpen(expanded ? null : day.id)}>
-                  {expanded ? t("hideDay") : t("seeDay")}
+                <button
+                  className="btn tertiary"
+                  type="button"
+                  aria-expanded={detailExpanded}
+                  onClick={() => setDetailOpen(detailExpanded ? null : day.id)}
+                >
+                  {detailExpanded ? t("hideDay") : t("seeDay")}
                 </button>
               </div>
             </article>
@@ -71,29 +84,17 @@ export function Itinerary() {
         })}
       </div>
       {itinerary
-        .filter((day) => day.id === open)
+        .filter((day) => day.id === dressOpen && day.pinterestBoard)
+        .map((day) => (
+          <div className="day-detail" key={`${day.id}-dress`}>
+            <PinterestBoard url={day.pinterestBoard!} title={day.pinterestTitle ?? t("dressInspo")} />
+          </div>
+        ))}
+      {itinerary
+        .filter((day) => day.id === detailOpen)
         .map((day) => (
           <div className="day-detail" key={`${day.id}-detail`}>
-            {day.pinterestBoard ? (
-              <PinterestBoard url={day.pinterestBoard} title={day.pinterestTitle ?? t("dressInspo")} />
-            ) : null}
-            <div className="timeline card">
-              <div className="card-body">
-                {day.events.map((event) => (
-                  <div className="event" key={`${day.id}-${event.time}-${event.titleEs}`}>
-                    <img src={event.image} alt="" />
-                    <div>
-                      <b>{event.time}</b>
-                      <p>
-                        {lang === "es" ? event.titleEs : event.titleEn}
-                        {event.optional ? ` · ${t("optional")}` : ""}
-                      </p>
-                      {event.placeEs ? <small>{lang === "es" ? event.placeEs : event.placeEn}</small> : null}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <DayTimeline day={day} titleKey={DETAIL_TITLE[day.id]} />
           </div>
         ))}
       </div>

@@ -5,6 +5,7 @@ const SHEETS = {
   contributions: "Contributions",
   settings: "Settings",
   club: "Club",
+  tours: "TourReservations",
 };
 
 function json(data) {
@@ -169,6 +170,60 @@ function doPost(e) {
       ensureHeaders(sh, ["id", "guestId", "displayName", "message", "createdAt"]);
       const r = body.record;
       sh.appendRow([r.id, r.guestId, r.displayName, r.message, r.createdAt]);
+      return json({ ok: true });
+    }
+    if (action === "tourReserve") {
+      const sh = sheet(SHEETS.tours);
+      ensureHeaders(sh, [
+        "id",
+        "guest_name",
+        "email",
+        "tour_id",
+        "tour_name",
+        "tour_date",
+        "quantity",
+        "children_count",
+        "price_per_person",
+        "total_amount",
+        "registration_date",
+        "payment_status",
+        "payment_link",
+      ]);
+      const r = body.record;
+      sh.appendRow([
+        r.id,
+        r.guestName,
+        r.email,
+        r.tourId,
+        r.tourName,
+        r.tourDate,
+        r.quantity,
+        r.childrenCount || 0,
+        r.pricePerPerson,
+        r.totalAmount,
+        r.registrationDate,
+        "Pendiente",
+        r.paymentLink || "",
+      ]);
+      return json({ ok: true });
+    }
+    if (action === "adminTours") {
+      requireAdmin(body.token);
+      return json({ reservations: rowsToObjects(sheet(SHEETS.tours).getDataRange().getValues()) });
+    }
+    if (action === "adminTourStatus") {
+      requireAdmin(body.token);
+      const sh = sheet(SHEETS.tours);
+      const values = sh.getDataRange().getValues();
+      if (!values.length) return json({ ok: true });
+      const headers = values[0].map((header) => String(header));
+      const idIdx = headers.indexOf("id");
+      const statusIdx = headers.indexOf("payment_status");
+      for (let i = 1; i < values.length; i++) {
+        if (String(values[i][idIdx]) === String(body.id) && statusIdx >= 0) {
+          sh.getRange(i + 1, statusIdx + 1).setValue(body.paymentStatus === "Pagado" ? "Pagado" : "Pendiente");
+        }
+      }
       return json({ ok: true });
     }
     if (action === "adminList") {

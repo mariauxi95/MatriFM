@@ -20,6 +20,51 @@ export function IconPassport(props: IconProps) {
   );
 }
 
+export function IconStroller(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M15.2 5.2 17 3.6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path
+        d="M7.4 10.2c.2-3.2 2.4-5 5.6-5h2.2"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <path
+        d="M9.2 17.4 7.4 10.2h7.2l1.5 4.4H9.6"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+      <circle cx="8.2" cy="18.6" r="1.7" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx="15.6" cy="18.6" r="1.7" stroke="currentColor" strokeWidth="1.5" />
+    </BaseIcon>
+  );
+}
+
+export function IconPolice(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path
+        d="M8 8.4 12 6.2l4 2.2v1.1H8V8.4Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <path d="M7.2 9.5h9.6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="12" cy="12.4" r="1.9" stroke="currentColor" strokeWidth="1.5" />
+      <path
+        d="M8 19.4v-.5A3.1 3.1 0 0 1 11.1 15.8h1.8A3.1 3.1 0 0 1 16 18.9v.5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <circle cx="15.2" cy="16.6" r="1.15" stroke="currentColor" strokeWidth="1.3" />
+    </BaseIcon>
+  );
+}
+
 export function IconBus(props: IconProps) {
   return (
     <BaseIcon {...props}>

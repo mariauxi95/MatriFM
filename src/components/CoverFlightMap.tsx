@@ -4,7 +4,7 @@ import { assetUrl } from "../lib/assets";
 export function CoverFlightMap() {
   return (
     <div className="cover-map" aria-hidden>
-      <img className="cover-map-img" src={assetUrl("/images/mapa-cover.png?v=2")} alt="" />
+      <img className="cover-map-img" src={assetUrl("/images/cover-bohemia.png?v=2")} alt="" />
       <svg
         className="cover-flight"
         viewBox="0 0 1024 768"

@@ -119,6 +119,24 @@ export type PaymentSettings = {
   usdToCad: number;
 };
 
+export type TourPaymentStatus = "Pendiente" | "Pagado";
+
+export type TourReservation = {
+  id: string;
+  guestName: string;
+  email: string;
+  tourId: string;
+  tourName: string;
+  tourDate: string;
+  quantity: number;
+  childrenCount: number;
+  pricePerPerson: number;
+  totalAmount: number;
+  registrationDate: string;
+  paymentStatus: TourPaymentStatus;
+  paymentLink: string;
+};
+
 export type ClubMessage = {
   id: string;
   guestId: string;

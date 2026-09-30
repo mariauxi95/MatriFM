@@ -10,6 +10,7 @@ import type {
   Guest,
   PaymentSettings,
   RsvpRecord,
+  TourReservation,
 } from "../types";
 
 const guests = guestsSeed as Guest[];
@@ -19,6 +20,7 @@ const KEYS = {
   contrib: "fm-contrib",
   club: "fm-club",
   settings: "fm-settings",
+  tours: "fm-tour-reservations",
 };
 
 function read<T>(key: string, fallback: T): T {
@@ -210,6 +212,69 @@ export async function submitClub(message: Omit<ClubMessage, "id" | "createdAt">)
   all.unshift(full);
   write(KEYS.club, all);
   return full;
+}
+
+export async function submitTourReservation(
+  input: Omit<TourReservation, "id" | "registrationDate" | "paymentStatus">,
+) {
+  const full: TourReservation = {
+    ...input,
+    id: uid(),
+    registrationDate: new Date().toISOString(),
+    paymentStatus: "Pendiente",
+  };
+  if (api) {
+    await remote("tourReserve", { record: full });
+    return full;
+  }
+  const all = read<TourReservation[]>(KEYS.tours, []);
+  all.unshift(full);
+  write(KEYS.tours, all);
+  return full;
+}
+
+function asTourReservation(row: Record<string, unknown>): TourReservation {
+  const status = String(row.paymentStatus ?? row.payment_status ?? "");
+  return {
+    id: String(row.id ?? ""),
+    guestName: String(row.guestName ?? row.guest_name ?? ""),
+    email: String(row.email ?? ""),
+    tourId: String(row.tourId ?? row.tour_id ?? ""),
+    tourName: String(row.tourName ?? row.tour_name ?? ""),
+    tourDate: String(row.tourDate ?? row.tour_date ?? ""),
+    quantity: Number(row.quantity || 0),
+    childrenCount: Number(row.childrenCount ?? row.children_count ?? 0),
+    pricePerPerson: Number(row.pricePerPerson ?? row.price_per_person ?? 0),
+    totalAmount: Number(row.totalAmount ?? row.total_amount ?? 0),
+    registrationDate: String(row.registrationDate ?? row.registration_date ?? ""),
+    paymentStatus: status === "Pagado" ? "Pagado" : "Pendiente",
+    paymentLink: String(row.paymentLink ?? row.payment_link ?? ""),
+  };
+}
+
+export async function adminTourList(token: string) {
+  if (api) {
+    const data = await remote<{ reservations: Record<string, unknown>[] }>("adminTours", { token });
+    return { reservations: (data.reservations || []).map(asTourReservation) };
+  }
+  if (token !== (import.meta.env.VITE_ADMIN_TOKEN || "change-me")) {
+    throw new Error("Unauthorized");
+  }
+  return { reservations: read<Record<string, unknown>[]>(KEYS.tours, []).map((row) => asTourReservation(row)) };
+}
+
+export async function adminTourStatus(token: string, id: string, paymentStatus: TourReservation["paymentStatus"]) {
+  if (api) {
+    return remote("adminTourStatus", { token, id, paymentStatus });
+  }
+  if (token !== (import.meta.env.VITE_ADMIN_TOKEN || "change-me")) {
+    throw new Error("Unauthorized");
+  }
+  const all = read<TourReservation[]>(KEYS.tours, []).map((item) =>
+    item.id === id ? { ...item, paymentStatus } : item,
+  );
+  write(KEYS.tours, all);
+  return { ok: true };
 }
 
 export async function adminList(token: string) {
