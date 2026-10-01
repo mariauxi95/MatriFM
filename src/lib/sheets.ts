@@ -13,6 +13,17 @@ import type {
   TourReservation,
 } from "../types";
 
+export type ActivitySignup = {
+  id: string;
+  guestId: string;
+  guestName: string;
+  activityKey: string;
+  activityName: string;
+  time: string;
+  quantity: number;
+  createdAt: string;
+};
+
 const guests = guestsSeed as Guest[];
 
 const KEYS = {
@@ -21,6 +32,7 @@ const KEYS = {
   club: "fm-club",
   settings: "fm-settings",
   tours: "fm-tour-reservations",
+  activities: "fm-activity-signups",
 };
 
 function read<T>(key: string, fallback: T): T {
@@ -211,6 +223,29 @@ export async function submitClub(message: Omit<ClubMessage, "id" | "createdAt">)
   const all = read<ClubMessage[]>(KEYS.club, []);
   all.unshift(full);
   write(KEYS.club, all);
+  return full;
+}
+
+export function listActivitySignups(guestId: string): ActivitySignup[] {
+  if (!guestId) return [];
+  return read<ActivitySignup[]>(KEYS.activities, []).filter((item) => item.guestId === guestId);
+}
+
+/** Browser copy of an activity signup, same fallback tours use when Sheets is not connected. */
+export async function submitActivitySignup(
+  input: Omit<ActivitySignup, "id" | "createdAt">,
+): Promise<ActivitySignup> {
+  const full: ActivitySignup = {
+    ...input,
+    quantity: Math.max(1, Math.floor(input.quantity) || 1),
+    id: uid(),
+    createdAt: new Date().toISOString(),
+  };
+  const all = read<ActivitySignup[]>(KEYS.activities, []).filter(
+    (item) => !(item.guestId === full.guestId && item.activityKey === full.activityKey),
+  );
+  all.unshift(full);
+  write(KEYS.activities, all);
   return full;
 }
 

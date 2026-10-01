@@ -84,7 +84,7 @@ export function Gifts() {
           <h1>
             {t("giftsStart")} <mark className="highlight">{t("giftsMark")}</mark>
           </h1>
-          <p>
+          <p className="gifts-lead">
             {t("giftsIntro1Start")} <mark className="highlight">{t("giftsIntro1Mark")}</mark>
           </p>
           {readMore ? (

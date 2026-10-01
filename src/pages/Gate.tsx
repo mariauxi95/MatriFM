@@ -44,7 +44,7 @@ export function Gate() {
     <main className="gate">
       <form className="gate-card" onSubmit={onSubmit}>
         <LangToggle />
-        <p className="eyebrow">{t("brand")}</p>
+        <p className="eyebrow">{t("gateBrand")}</p>
         <h1 className="page-title">{t("gateLostTitle")}</h1>
         <p className="gate-lead">{t("gateLostLead")}</p>
         <label className="field">

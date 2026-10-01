@@ -38,8 +38,8 @@ export function Itinerary() {
               />
               <div className="day-body">
                 <p className="eyebrow">{lang === "es" ? day.dateLabelEs : day.dateLabelEn}</p>
-                <h2>{lang === "es" ? day.titleEs : day.titleEn}</h2>
                 <p className="day-time">{day.time}</p>
+                <h2>{lang === "es" ? day.titleEs : day.titleEn}</h2>
                 {day.pinterestBoard ? (
                   <button
                     className="pill-link"

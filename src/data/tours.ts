@@ -52,7 +52,7 @@ export const tours: Tour[] = [
     date: "Martes 23 de marzo",
     time: "9:00 a 17:30 hrs",
     pricePerPerson: 185000,
-    meetingPoint: "Recepción Hotel Tamacá",
+    meetingPoint: "Por confirmar",
     description:
       "Un día completo para descubrir dos de las playas más especiales de Tayrona. La experiencia combina recorrido marítimo, paisajes del Parque Tayrona y tiempo para disfrutar de las aguas de Cinto y Playa Cristal.",
     image: assetUrl("/images/gallery/playacinto.webp"),

@@ -1,12 +1,18 @@
 import { assetUrl } from "../lib/assets";
 export type ItineraryEvent = {
   time: string;
+  /** English label when `time` is a phrase, not a clock time. */
+  timeEn?: string;
+  /** Second departure, shown as “time o timeAlt”. */
+  timeAlt?: string;
   titleEs: string;
   titleEn: string;
   placeEs?: string;
   placeEn?: string;
   image: string;
   optional?: boolean;
+  /** Opens the short signup drawer on the timeline card. */
+  signup?: boolean;
 };
 
 export type ItineraryDay = {
@@ -57,7 +63,7 @@ export const itinerary: ItineraryDay[] = [
         time: "10:15 a. m.",
         titleEs: "Llegada a Bohemia Beach y posadas",
         titleEn: "Arrival at Bohemia Beach and lodges",
-        image: assetUrl("/images/itinerary/preboda.png"),
+        image: assetUrl("/images/itinerary/llegada.png"),
       },
       {
         time: "12:00 p. m.",
@@ -67,20 +73,14 @@ export const itinerary: ItineraryDay[] = [
         placeEn: "Beach in front of Bohemia",
         image: assetUrl("/images/itinerary/volley.png"),
         optional: true,
+        signup: true,
       },
       {
-        time: "Almuerzo",
-        titleEs: "Break de almuerzo",
-        titleEn: "Lunch break",
-        placeEs: "Opciones cerca de la desembocadura Mendihuaca",
-        placeEn: "Options near the Mendihuaca river mouth",
-        image: assetUrl("/images/itinerary/cena.png"),
-      },
-      {
-        time: "3:00 p. m.",
-        titleEs: "Check-in en hospedajes",
-        titleEn: "Lodge check-in",
-        image: assetUrl("/images/itinerary/checkout.png"),
+        time: "Tiempo libre",
+        timeEn: "Free time",
+        titleEs: "",
+        titleEn: "",
+        image: assetUrl("/images/itinerary/tiempolibre.png"),
       },
       {
         time: "4:00 p. m.",
@@ -96,7 +96,7 @@ export const itinerary: ItineraryDay[] = [
         titleEn: "Welcome dinner — Last Stop Before “I Do”",
         placeEs: "Bar de playa Bohemia",
         placeEn: "Bohemia beach bar",
-        image: assetUrl("/images/itinerary/cena.png"),
+        image: assetUrl("/images/itinerary/preboda.png"),
       },
     ],
   },
@@ -126,8 +126,9 @@ export const itinerary: ItineraryDay[] = [
         time: "8:00 a. m.",
         titleEs: "Clase de yoga",
         titleEn: "Yoga class",
-        image: assetUrl("/images/itinerary/preboda.png"),
+        image: assetUrl("/images/itinerary/yoga.png?v=2"),
         optional: true,
+        signup: true,
       },
       {
         time: "4:45 p. m.",
@@ -141,7 +142,7 @@ export const itinerary: ItineraryDay[] = [
         time: "6:00 p. m.",
         titleEs: "Cóctel",
         titleEn: "Cocktail hour",
-        image: assetUrl("/images/itinerary/coctel.png"),
+        image: assetUrl("/images/itinerary/tragos.png"),
       },
       {
         time: "7:00 p. m.",
@@ -159,7 +160,7 @@ export const itinerary: ItineraryDay[] = [
         time: "2:00 a. m.",
         titleEs: "After party en la playa",
         titleEn: "Beach after party",
-        image: assetUrl("/images/itinerary/fiesta.png"),
+        image: assetUrl("/images/itinerary/afterparty.png"),
       },
     ],
   },
@@ -187,17 +188,12 @@ export const itinerary: ItineraryDay[] = [
         titleEn: "Tayrona beaches tour",
         placeEs: "Opcional, a costo individual",
         placeEn: "Optional, individual cost",
-        image: assetUrl("/images/itinerary/tour.png"),
+        image: assetUrl("/images/itinerary/tayrona.png"),
         optional: true,
       },
       {
         time: "11:00 a. m.",
-        titleEs: "Bus de regreso al centro de Santa Marta",
-        titleEn: "Bus back to downtown Santa Marta",
-        image: assetUrl("/images/itinerary/bus.png"),
-      },
-      {
-        time: "6:00 p. m.",
+        timeAlt: "6:00 p. m.",
         titleEs: "Bus de regreso al centro de Santa Marta",
         titleEn: "Bus back to downtown Santa Marta",
         image: assetUrl("/images/itinerary/bus.png"),
