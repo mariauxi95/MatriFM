@@ -98,6 +98,8 @@ export const gifts: Gift[] = [
     sortOrder: 8,
   },
   {
+    id: "baile",
+    emoji: "💃",
     image: assetUrl("/images/gallery/baile.jpg"),
     imagePosition: "center 34%",
     titleEs: "Clases de baile en pareja por 3 meses",

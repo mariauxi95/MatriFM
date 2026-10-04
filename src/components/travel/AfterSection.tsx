@@ -34,6 +34,34 @@ function BreakfastIcon() {
   );
 }
 
+function WhatsAppIcon() {
+  return (
+    <Icon className="after-cta-icon">
+      <path d="M20 11.4a8.4 8.4 0 0 1-12.5 7.3L4 19.6l.9-3.4A8.4 8.4 0 1 1 20 11.4Z" />
+      <path d="M9.1 9.4c.15-.35.35-.35.6-.35h.45c.15 0 .35 0 .45.4.15.45.55 1.5.55 1.6 0 .15 0 .3-.15.45l-.25.3c-.1.1-.2.25 0 .5.2.3.75 1.2 1.6 1.7.65.35.9.35 1.1.25l.35-.35c.15-.15.3-.1.45-.05l1 .45c.2.1.35.2.35.4 0 .55-.55 1.1-1.1 1.2-.45.1-1 .1-2.2-.35-1.4-.55-2.4-1.95-2.5-2.05-.1-.1-1-1.3-1-2.5 0-1.1.65-1.65.9-1.95Z" />
+    </Icon>
+  );
+}
+
+function BookingIcon() {
+  return (
+    <Icon className="after-cta-icon">
+      <rect x="4.2" y="5.2" width="15.6" height="14.2" rx="2" />
+      <path d="M8 3.8v3M16 3.8v3M4.2 9.4h15.6" />
+      <path d="m8.6 14.2 2.1 2.1 4.7-4.8" />
+    </Icon>
+  );
+}
+
+function WebIcon() {
+  return (
+    <Icon className="after-cta-icon">
+      <circle cx="12" cy="12" r="8" />
+      <path d="M4 12h16M12 4c2.2 2.3 3.3 5 3.3 8s-1.1 5.7-3.3 8c-2.2-2.3-3.3-5-3.3-8s1.1-5.7 3.3-8Z" />
+    </Icon>
+  );
+}
+
 function FactIcon({ name }: { name: AfterFactIcon }) {
   if (name === "price") return <PriceIcon />;
   if (name === "breakfast") return <BreakfastIcon />;
