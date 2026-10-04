@@ -12,7 +12,6 @@ export const defaultSettings: PaymentSettings = {
   interacAutodeposit: true,
   zelleName: "Fernando Yánez",
   zelleContact: "yanezlfernando@gmail.com",
-  wiseLink: "{{WISE_PAYMENT_LINK}}",
   wiseEmail: "yanezlfernando@gmail.com",
   wiseQr: "",
   usdToClp: 950,

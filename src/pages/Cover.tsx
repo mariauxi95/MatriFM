@@ -1,54 +1,15 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { CoverFilm } from "../components/CoverFilm";
 import { LangToggle } from "../components/LangToggle";
 import { useGuest } from "../context/GuestSession";
 import { useLang } from "../context/Language";
-import { fetchGuest, findLocalGuest } from "../lib/sheets";
-import type { Guest } from "../types";
 
 export function Cover() {
-  const { code = "" } = useParams();
   const navigate = useNavigate();
-  const { guest, setGuest, openInvite } = useGuest();
+  const { guest, openInvite } = useGuest();
   const { t } = useLang();
-  const [found, setFound] = useState<Guest | null>(() => findLocalGuest(code) ?? guest);
 
-  useEffect(() => {
-    const local = findLocalGuest(code);
-    if (local) {
-      setFound(local);
-      setGuest(local);
-    }
-    let alive = true;
-    fetchGuest(code)
-      .then((result) => {
-        if (!alive) return;
-        setFound(result);
-        if (result) setGuest(result);
-      })
-      .catch(() => {
-        if (alive && !local) setFound(null);
-      });
-    return () => {
-      alive = false;
-    };
-  }, [code, setGuest]);
-
-  if (!found) {
-    return (
-      <main className="cover">
-        <CoverFilm />
-        <LangToggle />
-        <div className="cover-inner">
-          <p className="cover-passport">{t("weddingPassport")}</p>
-          <p>{t("invalidCode")}</p>
-        </div>
-      </main>
-    );
-  }
-
-  const name = found?.displayName ?? "…";
+  if (!guest) return null;
 
   return (
     <main className="cover">
@@ -60,7 +21,7 @@ export function Cover() {
           <div className="stamp">
             <div>
               <small>{t("youAreInvited")}</small>
-              <strong>{name}</strong>
+              <strong>{guest.displayName}</strong>
             </div>
           </div>
         </div>
@@ -68,7 +29,6 @@ export function Cover() {
         <button
           className="btn wide"
           type="button"
-          disabled={!found}
           onClick={() => {
             openInvite();
             navigate("home");

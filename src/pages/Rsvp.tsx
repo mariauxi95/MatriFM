@@ -1,5 +1,6 @@
 import { assetUrl } from "../lib/assets";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Navigate } from "react-router-dom";
 import { ChoiceChip } from "../components/rsvp/ChoiceChip";
 import {
   choiceFromEvents,
@@ -7,6 +8,8 @@ import {
   emptyChild,
   emptyPerson,
   eventsFromChoice,
+  peopleFromMembers,
+  peopleFromReply,
   toggleDietary,
   transportFromChoice,
   type EventChoice,
@@ -15,9 +18,17 @@ import {
 import { RsvpHero } from "../components/rsvp/RsvpHero";
 import { RsvpProgress } from "../components/rsvp/RsvpProgress";
 import { useGuest } from "../context/GuestSession";
+import { Passport } from "./Passport";
 import { useLang } from "../context/Language";
-import { submitRsvp } from "../lib/sheets";
+import { fetchMyMembers, fetchRsvp, submitRsvp } from "../lib/sheets";
 import type { DietaryNeed, FoodMain, FoodSide, RsvpChild, RsvpPerson } from "../types";
+
+export function RsvpEntry() {
+  const { hasReply, replyReady } = useGuest();
+  if (!replyReady) return null;
+  if (hasReply) return <Passport />;
+  return <Navigate to="editar" replace />;
+}
 
 type Phase =
   | "intro"
@@ -26,10 +37,69 @@ type Phase =
   | "transport"
   | "food"
   | "children"
-  | "song"
   | "review"
   | "success"
   | "declined";
+
+function allowsKidsMenu(
+  person: RsvpPerson | undefined,
+  roster: { fullName: string; ageGroup: "baby" | "kid" | "teen" | "adult" }[],
+) {
+  if (!person?.name.trim()) return false;
+  const member = roster.find((row) => fold(row.fullName) === fold(person.name));
+  return member?.ageGroup === "baby" || member?.ageGroup === "kid";
+}
+
+function fold(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function RsvpDoneHint() {
+  const { t } = useLang();
+  const [spot, setSpot] = useState<{ top: number; left: number } | null>(null);
+
+  useLayoutEffect(() => {
+    document.body.dataset.rsvpDone = "";
+    function place() {
+      const button = document.getElementById("nav-my-rsvp");
+      if (!button) return;
+      const rect = button.getBoundingClientRect();
+      if (rect.width === 0) return;
+      setSpot({ top: rect.bottom + 8, left: rect.left + rect.width / 2 });
+    }
+    place();
+    window.addEventListener("resize", place);
+    return () => {
+      delete document.body.dataset.rsvpDone;
+      window.removeEventListener("resize", place);
+    };
+  }, []);
+
+  if (!spot) return null;
+  return (
+    <div className="rsvp-success-hint" style={{ top: spot.top, left: spot.left }}>
+      <p>{t("rsvpSuccessHint")}</p>
+      <svg viewBox="0 0 48 72" aria-hidden="true">
+        <path d="M10 66C22 48 24 34 24 12" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+        <path d="M13 20L24 8l11 14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </div>
+  );
+}
+
+function arrivalLabel(person: RsvpPerson, t: ReturnType<typeof useLang>["t"]) {
+  if (person.events.welcomeDinner && person.events.weddingDay) {
+    return `${t("rsvpArriveFriday")} · ${t("rsvpArriveFridayDetail")}`;
+  }
+  if (person.events.weddingDay) return `${t("rsvpArriveSaturday")} · ${t("rsvpArriveSaturdayDetail")}`;
+  if (person.events.welcomeDinner) return t("rsvpWelcomeDinner");
+  return "—";
+}
 
 function busLabel(
   person: RsvpPerson,
@@ -85,7 +155,7 @@ const DIET_OPTIONS = [
 
 export function Rsvp() {
   const { t } = useLang();
-  const { guest } = useGuest();
+  const { guest, markReply } = useGuest();
   const limit = guest?.guestLimit ?? 1;
   const hasChildren = Boolean(guest?.hasChildren);
   const childrenLimit = guest?.childrenLimit ?? (hasChildren ? 2 : 0);
@@ -98,21 +168,45 @@ export function Rsvp() {
     hasChildren ? Array.from({ length: Math.max(1, childrenLimit) }, emptyChild) : [],
   );
   const [childIndex, setChildIndex] = useState(0);
-  const [danceSong, setDanceSong] = useState("");
   const [error, setError] = useState("");
   const [sending, setSending] = useState(false);
   const [transportPicked, setTransportPicked] = useState(false);
   const [confirmDecline, setConfirmDecline] = useState(false);
+  const [savedReply, setSavedReply] = useState(false);
+  const [rosterReady, setRosterReady] = useState(false);
+  const [roster, setRoster] = useState<{ fullName: string; ageGroup: "baby" | "kid" | "teen" | "adult" }[]>([]);
 
   useEffect(() => {
-    if (guest?.displayName) {
-      setPeople((current) => {
-        const next = [...current];
-        if (!next[0]?.name) next[0] = { ...emptyPerson("primary"), name: guest.displayName };
-        return next;
+    if (!guest?.id) return;
+    let alive = true;
+    Promise.all([fetchRsvp(), fetchMyMembers()])
+      .then(([record, members]) => {
+        if (!alive) return;
+        setRoster(members);
+        if (record?.people.length) {
+          setPeople(peopleFromReply(record.people, record.danceSong));
+          setChildren(record.children);
+          setSavedReply(true);
+          return;
+        }
+        if (members.length) setPeople(peopleFromMembers(members));
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (alive) setRosterReady(true);
       });
-    }
-  }, [guest?.displayName]);
+    return () => {
+      alive = false;
+    };
+  }, [guest?.id]);
+
+  useEffect(() => {
+    if (!rosterReady || !guest?.displayName) return;
+    setPeople((current) => {
+      if (current.some((person) => person.name.trim())) return current;
+      return [{ ...emptyPerson("primary"), name: guest.displayName }];
+    });
+  }, [rosterReady, guest?.displayName]);
 
   useEffect(() => {
     if (phase === "intro") return;
@@ -234,11 +328,12 @@ export function Rsvp() {
   }
 
   function goFromFood() {
-    const kidsMenu = current?.food.mainPreference === "kids";
+    const kidsMenu = allowsKidsMenu(current, roster) && current?.food.mainPreference === "kids";
     if (
       !current?.food.mainPreference ||
-      (!kidsMenu && !current?.food.sidePreference) ||
-      !current?.food.dietaryRequirements.length
+      (current.food.mainPreference === "kids" && !kidsMenu) ||
+      (!kidsMenu && !current.food.sidePreference) ||
+      !current.food.dietaryRequirements.length
     ) {
       setError(t("rsvpChoiceError"));
       return;
@@ -253,7 +348,7 @@ export function Rsvp() {
       setPhase("children");
       return;
     }
-    setPhase("song");
+    setPhase("review");
   }
 
   function goFromChildren() {
@@ -261,7 +356,7 @@ export function Rsvp() {
       setChildIndex((i) => i + 1);
       return;
     }
-    setPhase("song");
+    setPhase("review");
   }
 
   function goBack() {
@@ -287,7 +382,7 @@ export function Rsvp() {
       }
       return;
     }
-    if (phase === "song") {
+    if (phase === "review") {
       if (hasChildren) {
         setChildIndex(Math.max(0, children.length - 1));
         setPhase("children");
@@ -295,9 +390,7 @@ export function Rsvp() {
         setPersonIndex(people.length - 1);
         setPhase("food");
       }
-      return;
     }
-    if (phase === "review") setPhase("song");
   }
 
   async function decline() {
@@ -313,6 +406,7 @@ export function Rsvp() {
       message: "",
     });
     setSending(false);
+    markReply();
     setPhase("declined");
   }
 
@@ -325,10 +419,14 @@ export function Rsvp() {
       attending: true,
       people,
       children: hasChildren ? children : [],
-      danceSong,
+      danceSong: people
+        .map((person) => person.note?.trim() ?? "")
+        .filter(Boolean)
+        .join(" · "),
       message: "",
     });
     setSending(false);
+    markReply();
     setPhase("success");
   }
 
@@ -337,7 +435,7 @@ export function Rsvp() {
       <main className="rsvp-page">
         <RsvpHero
           title={t("rsvpHeroTitle")}
-          body={t("rsvpHeroBody")}
+          body={savedReply ? `${t("rsvpHeroBody")} ${t("rsvpAlready")}` : t("rsvpHeroBody")}
           cta={t("rsvpHeroCta")}
           badge={t("rsvpHeroBadge")}
           photoSrc={assetUrl("/images/rsvp-hero.jpg")}
@@ -355,6 +453,7 @@ export function Rsvp() {
           <h1>{phase === "success" ? t("rsvpSuccessTitle") : t("rsvpDeclineOk")}</h1>
           {phase === "success" ? <p>{t("rsvpSuccessBody")}</p> : <p>{t("rsvpDeclineBody")}</p>}
         </div>
+        {phase === "success" ? <RsvpDoneHint /> : null}
       </main>
     );
   }
@@ -439,23 +538,25 @@ export function Rsvp() {
             <p className="eyebrow">{t("rsvpStepPlans")}</p>
             <h2>{t("rsvpEventsQ")}</h2>
             <p className="rsvp-choice-hint">{t("rsvpHintOne")}</p>
-            <div className="rsvp-choice-grid">
+            <div className="rsvp-choice-grid two">
               {(
                 [
-                  ["both", "rsvpEventsBoth"],
-                  ["welcome", "rsvpWelcomeDinner"],
-                  ["wedding", "rsvpWeddingDay"],
+                  ["both", "rsvpArriveFriday", "rsvpArriveFridayDetail"],
+                  ["wedding", "rsvpArriveSaturday", "rsvpArriveSaturdayDetail"],
                 ] as const
-              ).map(([value, key]) => (
+              ).map(([value, title, detail]) => (
                 <ChoiceChip
                   key={value}
                   selected={eventChoice === value}
                   onClick={() => {
                     setError("");
-                    setGroupEvents(value as EventChoice);
+                    setGroupEvents(value);
                   }}
                 >
-                  {t(key)}
+                  <span className="rsvp-arrival">
+                    <b>{t(title)}</b>
+                    <small>{t(detail)}</small>
+                  </span>
                 </ChoiceChip>
               ))}
             </div>
@@ -537,7 +638,7 @@ export function Rsvp() {
                 <h4>{t("rsvpMainPref")}</h4>
                 <p className="rsvp-choice-hint">{t("rsvpHintOne")}</p>
                 <div className="rsvp-choice-grid">
-                  {MAIN_OPTIONS.map(([value, key]) => (
+                  {MAIN_OPTIONS.filter(([value]) => value !== "kids" || allowsKidsMenu(current, roster)).map(([value, key]) => (
                     <ChoiceChip
                       key={value}
                       selected={current.food.mainPreference === value}
@@ -679,6 +780,15 @@ export function Rsvp() {
               </div>
             </div>
 
+            <label className="field">
+              <span>{t("rsvpSongQ")}</span>
+              <input
+                value={current?.note ?? ""}
+                placeholder={t("rsvpSongPh")}
+                onChange={(e) => updatePerson(personIndex, { note: e.target.value })}
+              />
+            </label>
+
             {error ? <p className="rsvp-error">{error}</p> : null}
             <div className="rsvp-nav">
               <button className="btn ghost" type="button" onClick={goBack}>
@@ -751,18 +861,48 @@ export function Rsvp() {
           </div>
         ) : null}
 
-        {phase === "song" ? (
-          <div className="rsvp-step rsvp-step-fun">
-            <p className="eyebrow">{t("rsvpSongTitle")}</p>
-            <h2>{t("rsvpSongQ")}</h2>
-            <label className="field">
-              <span className="sr-only">{t("rsvpSongPh")}</span>
-              <input
-                value={danceSong}
-                placeholder={t("rsvpSongPh")}
-                onChange={(e) => setDanceSong(e.target.value)}
-              />
-            </label>
+        {phase === "review" ? (
+          <div className="rsvp-step">
+            <h2>{t("rsvpReviewTitle")}</h2>
+            <div className="rsvp-review-list">
+              {people[0] ? (
+                <article className="rsvp-review-card">
+                  <h3>{t("rsvpStepPlans")}</h3>
+                  <p>{arrivalLabel(people[0], t)}</p>
+                  <p>
+                    Bus:{" "}
+                    {busLabel(people[0], {
+                      both: t("rsvpBusBoth"),
+                      out: t("rsvpBusOut"),
+                      back: t("rsvpBusBack"),
+                      none: t("rsvpBusNo"),
+                    })}
+                  </p>
+                </article>
+              ) : null}
+              {people.map((person) => (
+                <article className="rsvp-review-card" key={person.name}>
+                  <h3>{person.name}</h3>
+                  <p>
+                    {t("rsvpStepFood")}: {foodLabel(person, t)}
+                  </p>
+                  {person.note?.trim() ? <p>{person.note}</p> : null}
+                </article>
+              ))}
+              {hasChildren && children.some((c) => c.name.trim()) ? (
+                <article className="rsvp-review-card">
+                  <h3>{t("rsvpStepKids")}</h3>
+                  {children
+                    .filter((c) => c.name.trim())
+                    .map((child) => (
+                      <p key={child.name}>
+                        {child.name}
+                        {child.age != null ? ` · Age ${child.age}` : ""}
+                      </p>
+                    ))}
+                </article>
+              ) : null}
+            </div>
             {import.meta.env.VITE_SPOTIFY_PLAYLIST_URL ? (
               <a
                 className="btn tertiary rsvp-spotify-btn"
@@ -779,64 +919,6 @@ export function Rsvp() {
                 {t("rsvpSpotifyCta")}
               </a>
             ) : null}
-            <div className="rsvp-nav">
-              <button className="btn ghost" type="button" onClick={goBack}>
-                {t("rsvpBack")}
-              </button>
-              <button className="btn" type="button" onClick={() => setPhase("review")}>
-                {t("rsvpContinue")}
-              </button>
-            </div>
-          </div>
-        ) : null}
-
-        {phase === "review" ? (
-          <div className="rsvp-step">
-            <h2>{t("rsvpReviewTitle")}</h2>
-            <div className="rsvp-review-list">
-              {people.map((person) => (
-                <article className="rsvp-review-card" key={person.name}>
-                  <h3>{person.name}</h3>
-                  <p>
-                    {[
-                      person.events.welcomeDinner ? t("rsvpWelcomeDinner") : null,
-                      person.events.weddingDay ? t("rsvpWeddingDay") : null,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </p>
-                  <p>
-                    Bus:{" "}
-                    {busLabel(person, {
-                      both: t("rsvpBusBoth"),
-                      out: t("rsvpBusOut"),
-                      back: t("rsvpBusBack"),
-                      none: t("rsvpBusNo"),
-                    })}
-                  </p>
-                  <p>Food: {foodLabel(person, t)}</p>
-                </article>
-              ))}
-              {hasChildren && children.some((c) => c.name.trim()) ? (
-                <article className="rsvp-review-card">
-                  <h3>{t("rsvpStepKids")}</h3>
-                  {children
-                    .filter((c) => c.name.trim())
-                    .map((child) => (
-                      <p key={child.name}>
-                        {child.name}
-                        {child.age != null ? ` · Age ${child.age}` : ""}
-                      </p>
-                    ))}
-                </article>
-              ) : null}
-              {danceSong.trim() ? (
-                <article className="rsvp-review-card">
-                  <h3>🎵</h3>
-                  <p>{danceSong}</p>
-                </article>
-              ) : null}
-            </div>
             <div className="rsvp-nav">
               <button className="btn ghost" type="button" onClick={() => setPhase("guests")}>
                 {t("rsvpReviewEdit")}

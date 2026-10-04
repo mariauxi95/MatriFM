@@ -493,11 +493,6 @@ function PayStep({
         ))}
         {method === "cad" ? <p>{t("interacNote")}</p> : null}
         {method === "zelle" ? <p>{t("zelleNote")}</p> : null}
-        {method === "wise" && settings.wiseLink.startsWith("http") ? (
-          <a className="btn tertiary" href={settings.wiseLink} target="_blank" rel="noreferrer">
-            {t("wiseCta")} ↗
-          </a>
-        ) : null}
         {method === "clp" ? (
           <button className="btn tertiary" type="button" onClick={() => copy(all, "all")}>
             {copied === "all" ? t("copied") : t("copyAll")}

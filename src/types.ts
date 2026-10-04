@@ -33,6 +33,8 @@ export type RsvpPerson = {
     dietaryRequirements: DietaryNeed[];
     dietaryOther: string;
   };
+  /** Song or note for this guest. */
+  note?: string;
   /** @deprecated kept for older local records */
   menu?: MenuChoice;
 };
@@ -112,7 +114,6 @@ export type PaymentSettings = {
   interacAutodeposit: boolean;
   zelleName: string;
   zelleContact: string;
-  wiseLink: string;
   wiseEmail: string;
   wiseQr: string;
   usdToClp: number;
@@ -135,6 +136,39 @@ export type TourReservation = {
   registrationDate: string;
   paymentStatus: TourPaymentStatus;
   paymentLink: string;
+};
+
+export type FlightLeg = {
+  booked: boolean | null;
+  date: string;
+  time: string;
+  from: string;
+  to: string;
+  /** Airline flight number. Used for the leg into Santa Marta. */
+  number: string;
+};
+
+export type StayPlan = {
+  reserved: boolean | null;
+  place: string;
+  other: string;
+  checkIn: string;
+  checkInTime: string;
+  checkOut: string;
+  checkOutTime: string;
+};
+
+export type ExtraDay = {
+  yes: boolean | null;
+  date: string;
+};
+
+export type GuestPlans = {
+  arrival: FlightLeg;
+  departure: FlightLeg;
+  stay: StayPlan;
+  before: ExtraDay;
+  after: ExtraDay;
 };
 
 export type ClubMessage = {

@@ -51,7 +51,6 @@ function settingsObject() {
     interacAutodeposit: String(map.interacAutodeposit) !== "false",
     zelleName: map.zelleName || "{{ZELLE_NAME}}",
     zelleContact: map.zelleContact || "{{ZELLE_EMAIL_OR_PHONE}}",
-    wiseLink: map.wiseLink || "{{WISE_PAYMENT_LINK}}",
     wiseEmail: map.wiseEmail || "{{WISE_EMAIL}}",
     wiseQr: map.wiseQr || "",
     usdToClp: Number(map.usdToClp || 950),

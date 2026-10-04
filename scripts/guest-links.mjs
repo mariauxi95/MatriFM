@@ -18,7 +18,7 @@ const rows = guests.map((guest) => ({
   fullName: guest.fullName,
   email: guest.email ?? "",
   guestLimit: guest.guestLimit ?? 1,
-  link: `${base}/invite/${guest.id}`,
+  link: `${base}/invite`,
 }));
 
 const csv = [
