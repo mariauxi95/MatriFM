@@ -1106,6 +1106,7 @@ function methodLabel(method: string) {
   if (method === "cad") return "Interac";
   if (method === "zelle") return "Zelle";
   if (method === "wise") return "Wise";
+  if (method === "eur") return "EUR";
   return method;
 }
 

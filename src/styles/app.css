@@ -3742,11 +3742,17 @@ body[data-rsvp-done] #nav-my-rsvp {
 }
 
 .method-flag {
-  width: 1.75rem;
-  height: 1.15rem;
   display: block;
+  width: 1.85rem;
+  height: auto;
   border-radius: 2px;
-  box-shadow: 0 0 0 1px rgba(19, 36, 31, 0.08);
+  box-shadow: 0 0 0 1px rgba(19, 36, 31, 0.12);
+}
+
+.method-flag-emoji {
+  font-size: 1.45rem;
+  line-height: 1;
+  display: block;
 }
 
 .method-card-title {
@@ -3787,6 +3793,12 @@ body[data-rsvp-done] #nav-my-rsvp {
 
 .gift-drawer-success {
   padding: 0.5rem 0 0.25rem;
+}
+
+.gift-pay h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
 }
 
 .gift-pay h2 .method-flag {

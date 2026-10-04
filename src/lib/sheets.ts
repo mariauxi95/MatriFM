@@ -28,6 +28,11 @@ export type ActivitySignup = {
 
 export type AgeGroup = "baby" | "kid" | "teen" | "adult";
 
+export function ageGroupOf(value: string | null | undefined): AgeGroup {
+  if (value === "baby" || value === "kid" || value === "teen") return value;
+  return "adult";
+}
+
 export type AdminMember = {
   id: string;
   fullName: string;
@@ -220,16 +225,23 @@ type SettingsRow = {
   wise_qr: string;
   usd_to_clp: number;
   usd_to_cad: number;
+  usd_to_eur?: number;
 };
+
+function filled(value: string | null | undefined, fallback: string) {
+  const text = (value ?? "").trim();
+  if (!text || text.includes("{{")) return fallback;
+  return text;
+}
 
 function mapSettings(row: SettingsRow): PaymentSettings {
   return {
-    clpName: row.clp_name,
-    clpRut: row.clp_rut,
-    clpBank: row.clp_bank,
-    clpAccountType: row.clp_account_type,
-    clpAccountNumber: row.clp_account_number,
-    clpEmail: row.clp_email,
+    clpName: filled(row.clp_name, defaultSettings.clpName),
+    clpRut: filled(row.clp_rut, defaultSettings.clpRut),
+    clpBank: filled(row.clp_bank, defaultSettings.clpBank),
+    clpAccountType: filled(row.clp_account_type, defaultSettings.clpAccountType),
+    clpAccountNumber: filled(row.clp_account_number, defaultSettings.clpAccountNumber),
+    clpEmail: filled(row.clp_email, defaultSettings.clpEmail),
     interacName: row.interac_name,
     interacEmail: row.interac_email,
     interacAutodeposit: row.interac_autodeposit,
@@ -239,6 +251,7 @@ function mapSettings(row: SettingsRow): PaymentSettings {
     wiseQr: row.wise_qr,
     usdToClp: Number(row.usd_to_clp),
     usdToCad: Number(row.usd_to_cad),
+    usdToEur: Number(row.usd_to_eur) > 0 ? Number(row.usd_to_eur) : defaultSettings.usdToEur,
   };
 }
 
@@ -273,7 +286,7 @@ export async function fetchMyMembers() {
   return ((data ?? []) as { full_name: string; age_group: string | null; is_primary: boolean | null }[])
     .map((member) => ({
       fullName: member.full_name,
-      ageGroup: member.age_group === "baby" || member.age_group === "kid" || member.age_group === "teen" ? member.age_group : "adult" as const,
+      ageGroup: ageGroupOf(member.age_group),
       isPrimary: Boolean(member.is_primary),
     }))
     .sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary) || a.fullName.localeCompare(b.fullName, "es"));
@@ -340,7 +353,9 @@ export async function submitContribution(
       ? settings.usdToClp
       : input.currencyOriginal === "CAD"
         ? settings.usdToCad
-        : 1;
+        : input.currencyOriginal === "EUR"
+          ? settings.usdToEur
+          : 1;
   const household = await householdId();
   const { data, error } = await supabase
     .from("contributions")
@@ -512,7 +527,6 @@ export async function adminUpdateStatus(id: string, status: Contribution["status
     })
     .eq("id", id);
   fail(error);
-  return { ok: true };
 }
 
 export async function adminTourList() {
@@ -532,7 +546,6 @@ export async function adminTourList() {
 export async function adminTourStatus(id: string, paymentStatus: TourReservation["paymentStatus"]) {
   const { error } = await supabase.from("tour_reservations").update({ payment_status: paymentStatus }).eq("id", id);
   fail(error);
-  return { ok: true };
 }
 
 export async function adminSaveSettings(settings: PaymentSettings) {
@@ -780,10 +793,7 @@ export async function fetchPassport(): Promise<HouseholdPassport | null> {
         id: member.id,
         fullName: member.full_name,
         email: member.email ?? "",
-        ageGroup:
-          member.age_group === "baby" || member.age_group === "kid" || member.age_group === "teen"
-            ? member.age_group
-            : ("adult" as const),
+        ageGroup: ageGroupOf(member.age_group),
         isPrimary: Boolean(member.is_primary),
         signedIn: Boolean(member.auth_user_id),
       }))

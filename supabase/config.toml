@@ -160,11 +160,11 @@ enabled = true
 enabled = true
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
 # in emails.
-site_url = "http://localhost:5173"
+site_url = "https://matrimarifer.com"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["http://localhost:5173/**"]
+additional_redirect_urls = ["https://matrimarifer.com/**", "http://localhost:5173/**"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to auth.external_url.
@@ -247,13 +247,14 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
-# Code email. The hosted free plan rejects template edits until custom SMTP is set.
+# The hosted default mailer always sends as Supabase. These templates apply
+# once custom SMTP is enabled (Authentication → Emails → SMTP).
 [auth.email.template.magic_link]
-subject = "Tu código para la invitación"
+subject = "Tu código para la invitación de Maru & Fer"
 content_path = "./supabase/templates/magic_link.html"
 
 [auth.email.template.confirmation]
-subject = "Tu código para la invitación"
+subject = "Tu código para la invitación de Maru & Fer"
 content_path = "./supabase/templates/confirmation.html"
 
 # Uncomment to customize notification email template

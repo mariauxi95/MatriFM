@@ -75,8 +75,8 @@ export type Gift = {
   sortOrder: number;
 };
 
-export type PaymentMethod = "clp" | "cad" | "zelle" | "wise";
-export type Currency = "USD" | "CLP" | "CAD";
+export type PaymentMethod = "clp" | "cad" | "zelle" | "wise" | "eur";
+export type Currency = "USD" | "CLP" | "CAD" | "EUR";
 export type ContributionStatus = "pending" | "confirmed" | "cancelled";
 
 export type Contribution = {
@@ -118,6 +118,7 @@ export type PaymentSettings = {
   wiseQr: string;
   usdToClp: number;
   usdToCad: number;
+  usdToEur: number;
 };
 
 export type TourPaymentStatus = "Pendiente" | "Pagado";
