@@ -39,6 +39,7 @@ export function Itinerary() {
               <div className="day-body">
                 <p className="eyebrow">{lang === "es" ? day.dateLabelEs : day.dateLabelEn}</p>
                 <p className="day-time">{day.time}</p>
+                <div className="day-point">
                 <h2>{lang === "es" ? day.titleEs : day.titleEn}</h2>
                 {day.pinterestBoard ? (
                   <button
@@ -78,6 +79,7 @@ export function Itinerary() {
                 >
                   {detailExpanded ? t("hideDay") : t("seeDay")}
                 </button>
+                </div>
               </div>
             </article>
           );
@@ -94,7 +96,12 @@ export function Itinerary() {
         .filter((day) => day.id === detailOpen)
         .map((day) => (
           <div className="day-detail" key={`${day.id}-detail`}>
-            <DayTimeline day={day} titleKey={DETAIL_TITLE[day.id]} />
+            <DayTimeline
+              day={day}
+              titleKey={DETAIL_TITLE[day.id]}
+              dressExpanded={dressOpen === day.id}
+              onDress={() => setDressOpen(dressOpen === day.id ? null : day.id)}
+            />
           </div>
         ))}
       </div>

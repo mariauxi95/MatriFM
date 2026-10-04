@@ -3,40 +3,36 @@ import { useEffect, useState, type ComponentType, type SVGProps } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ClubWhatsAppPanel } from "../components/club/ClubWhatsAppPanel";
 import { StaySection } from "../components/stay/StaySection";
-import { DocsSection } from "../components/travel/DocsSection";
+import { AfterSection } from "../components/travel/AfterSection";
+import { FaqSection } from "../components/travel/FaqSection";
 import { TransportSection } from "../components/travel/TransportSection";
 import { ToursSection } from "../components/travel/ToursSection";
-import {
-  IconAccessibility,
-  IconBed,
-  IconBus,
-  IconCompass,
-  IconPassport,
-  IconWhatsApp,
-} from "../components/travel/TravelIcons";
+import { IconFaq, IconWhatsApp } from "../components/travel/TravelIcons";
 import { useLang } from "../context/Language";
 import type { MessageKey } from "../i18n";
 
-type SectionId = "docs" | "transport" | "stay" | "needs" | "tours" | "club";
+type SectionId = "faq" | "transport" | "stay" | "after" | "tours" | "club";
 
-const SECTION_IDS: SectionId[] = ["docs", "transport", "stay", "needs", "tours", "club"];
+const SECTION_IDS: SectionId[] = ["faq", "transport", "stay", "after", "tours", "club"];
 
 const travelSections: {
   id: SectionId;
   titleKey: MessageKey;
-  Icon: ComponentType<SVGProps<SVGSVGElement>>;
+  Icon?: ComponentType<SVGProps<SVGSVGElement>>;
+  art?: string;
 }[] = [
-  { id: "docs", titleKey: "pillDocs", Icon: IconPassport },
-  { id: "transport", titleKey: "pillTransport", Icon: IconBus },
-  { id: "stay", titleKey: "pillStay", Icon: IconBed },
-  { id: "needs", titleKey: "pillNeeds", Icon: IconAccessibility },
-  { id: "tours", titleKey: "pillTours", Icon: IconCompass },
+  { id: "faq", titleKey: "pillFaq", Icon: IconFaq },
+  { id: "transport", titleKey: "pillTransport", art: "/images/icons/cat-bus.png" },
+  { id: "stay", titleKey: "pillStay", art: "/images/icons/cat-bed.png" },
+  { id: "after", titleKey: "pillAfter", art: "/images/icons/cat-resort.png" },
+  { id: "tours", titleKey: "pillTours", art: "/images/icons/cat-playa.png" },
   { id: "club", titleKey: "pillClub", Icon: IconWhatsApp },
 ];
 
 function sectionFromHash(hash: string): SectionId | null {
-  const id = hash.replace(/^#travel-/, "") as SectionId;
-  return SECTION_IDS.includes(id) ? id : null;
+  const id = hash.replace(/^#travel-/, "");
+  if (id === "docs" || id === "needs") return "faq";
+  return SECTION_IDS.includes(id as SectionId) ? (id as SectionId) : null;
 }
 
 export function Travel() {
@@ -94,7 +90,7 @@ export function Travel() {
         </header>
 
         <nav className="travel-cat-grid" aria-label={t("travelKicker")}>
-          {travelSections.map(({ id, titleKey, Icon }) => (
+          {travelSections.map(({ id, titleKey, Icon, art }) => (
             <button
               key={id}
               type="button"
@@ -102,15 +98,15 @@ export function Travel() {
               aria-pressed={active === id}
               onClick={() => openSection(id)}
             >
-              <Icon />
+              {art ? <img src={assetUrl(art)} alt="" /> : Icon ? <Icon /> : null}
               <span>{t(titleKey)}</span>
             </button>
           ))}
         </nav>
 
-        {active === "docs" ? (
-          <section className="travel-section" id="travel-docs">
-            <DocsSection />
+        {active === "faq" ? (
+          <section className="travel-section" id="travel-faq">
+            <FaqSection />
             <button className="travel-back" type="button" onClick={closeSection}>
               ↑ {t("travelBackMenu")}
             </button>
@@ -135,15 +131,9 @@ export function Travel() {
           </section>
         ) : null}
 
-        {active === "needs" ? (
-          <section className="travel-section" id="travel-needs">
-            <h2>{t("needsTitle")}</h2>
-            <h3>{t("needsMinorTitle")}</h3>
-            <p>{t("needsMinorP1")}</p>
-            <p>{t("needsMinorP2")}</p>
-            <p>{t("needsMinorP3")}</p>
-            <h3>{t("needsBabyTitle")}</h3>
-            <p>{t("needsBabyP1")}</p>
+        {active === "after" ? (
+          <section className="travel-section" id="travel-after">
+            <AfterSection />
             <button className="travel-back" type="button" onClick={closeSection}>
               ↑ {t("travelBackMenu")}
             </button>
@@ -154,7 +144,7 @@ export function Travel() {
 
         {active === "club" ? (
           <section className="travel-section" id="travel-club">
-            <h2>{t("clubKicker")}</h2>
+            <h2>{t("pillClub")}</h2>
             <ClubWhatsAppPanel />
             <button className="travel-back" type="button" onClick={closeSection}>
               ↑ {t("travelBackMenu")}

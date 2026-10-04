@@ -115,6 +115,35 @@ export function IconBed(props: IconProps) {
   );
 }
 
+export function IconFaq(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.5" />
+      <path
+        d="M9.4 9.3a2.6 2.6 0 1 1 3.3 2.5c-.7.3-1.1.8-1.1 1.5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <circle cx="11.6" cy="16.2" r="0.8" fill="currentColor" />
+    </BaseIcon>
+  );
+}
+
+export function IconAfter(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path
+        d="M12 14.5c1.6-2.2 1.2-4.2.2-5.5 1.8 1 3.1 2.8 3.1 4.8A3.3 3.3 0 0 1 12 17a3.3 3.3 0 0 1-3.3-3.2c0-2 1.3-3.8 3.1-4.8-1 1.3-1.4 3.3.2 5.5Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <path d="M7 19.5h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </BaseIcon>
+  );
+}
+
 export function IconWhatsApp(props: IconProps) {
   return (
     <BaseIcon {...props}>
