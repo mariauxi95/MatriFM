@@ -638,6 +638,31 @@
   font-size: 0.78rem;
 }
 
+.gate-or {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0;
+  color: rgba(228, 214, 175, 0.62);
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.gate-or::before,
+.gate-or::after {
+  content: "";
+  height: 1px;
+  background: rgba(228, 214, 175, 0.28);
+}
+
+.btn.ghost.gate-google {
+  width: 100%;
+  --btn-fill: var(--coral);
+  --btn-swap: var(--coral);
+}
+
 .gate-help {
   margin: 0;
   font-size: 0.82rem;

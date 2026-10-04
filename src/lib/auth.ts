@@ -26,6 +26,29 @@ export function authFailure(error: unknown): AuthFailure {
   return "other";
 }
 
+// Google sign-in uses the same Supabase session as the email code.
+// In Google Cloud, add this redirect URI on the web client:
+// https://ypnxmqrwhnjxhydveqcr.supabase.co/auth/v1/callback
+// In Supabase: Authentication → Providers → Google, with that client id and secret.
+// Allow https://matrimarifer.com and http://localhost:5173 in URL configuration.
+// The client secret stays in Supabase, not in this repo.
+export async function signInWithGoogle() {
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: magicLinkRedirect() },
+  });
+  if (error) throw error;
+}
+
+export function oauthReturnFailure(): AuthFailure | null {
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  const search = new URLSearchParams(window.location.search);
+  const error = hash.get("error") || search.get("error");
+  const description = hash.get("error_description") || search.get("error_description") || "";
+  if (!error && !description) return null;
+  return authFailure({ message: `${error ?? ""} ${description}` });
+}
+
 export async function sendMagicLink(email: string) {
   const { error } = await supabase.auth.signInWithOtp({
     email: email.trim().toLowerCase(),

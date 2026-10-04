@@ -434,6 +434,15 @@ export async function submitClub(message: Omit<ClubMessage, "id" | "createdAt">)
   } satisfies ClubMessage;
 }
 
+export async function adminListActivitySignups(): Promise<ActivitySignup[]> {
+  const { data, error } = await supabase
+    .from("activity_signups")
+    .select("*")
+    .order("created_at", { ascending: false });
+  fail(error);
+  return ((data ?? []) as ActivityRow[]).map(mapActivity);
+}
+
 export async function listActivitySignups(): Promise<ActivitySignup[]> {
   const id = await householdId();
   if (!id) return [];

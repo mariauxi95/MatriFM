@@ -1,15 +1,20 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from "react";
 import { hotels } from "../../data/hotels";
-import type { AdminHousehold, AdminRsvp, AdminTourReservation } from "../../lib/sheets";
+import type { ActivitySignup, AdminHousehold, AdminRsvp, AdminTourReservation } from "../../lib/sheets";
 import { adminSaveSettings, adminSetInviteSent, adminSetLodging, adminUpdateHousehold } from "../../lib/sheets";
 import type { Contribution, PaymentSettings } from "../../types";
 import { AdminPanel, CreateHousehold } from "./AdminPanel";
+import { downloadGuestSheet } from "./excel";
 import {
+  ACTIVITY_COLUMNS,
+  activityCell,
   ageLabel,
   buildDesk,
   deskGuests,
+  EXPORT_HEADERS,
   formatHeads,
   giftLabel,
+  guestExportRow,
   headsOf,
   matchesFilter,
   matchesKind,
@@ -21,7 +26,8 @@ import {
   sortName,
   planLabel,
   rsvpPersonFor,
-  tourLabel,
+  TOUR_COLUMNS,
+  tourCell,
   type DeskFilter,
   type KindFilter,
   type SideFilter,
@@ -49,6 +55,7 @@ export function AdminDesk({
   rsvps,
   contributions,
   reservations,
+  signups,
   settings,
   onSettings,
   onReload,
@@ -58,6 +65,7 @@ export function AdminDesk({
   rsvps: AdminRsvp[];
   contributions: Contribution[];
   reservations: AdminTourReservation[];
+  signups: ActivitySignup[];
   settings: PaymentSettings;
   onSettings: (settings: PaymentSettings) => void;
   onReload: () => Promise<void>;
@@ -79,8 +87,8 @@ export function AdminDesk({
   const [tab, setTab] = useState<"guests" | "transfers">("guests");
 
   const desk = useMemo(
-    () => buildDesk(households, rsvps, contributions, reservations),
-    [households, rsvps, contributions, reservations],
+    () => buildDesk(households, rsvps, contributions, reservations, signups),
+    [households, rsvps, contributions, reservations, signups],
   );
   const visible = desk
     .filter((row) => matchesFilter(row, filter) && matchesSide(row, side) && matchesKind(row, kind) && matchesQuery(row, query))
@@ -165,6 +173,25 @@ export function AdminDesk({
     }
   }
 
+  function hotelName(lodging: string) {
+    return hotelOptions.find((hotel) => hotel.id === lodging)?.name ?? "Sin hotel";
+  }
+
+  function downloadExcel() {
+    const rows = desk.flatMap((row) =>
+      deskGuests(row).map((guest) =>
+        guestExportRow({
+          invitation: householdName(row.household),
+          sent: inviteSent(row.household),
+          hotel: hotelName(lodgingValue(row.household)),
+          row,
+          guest,
+        }),
+      ),
+    );
+    downloadGuestSheet(EXPORT_HEADERS, rows);
+  }
+
   return (
     <main className={`admin-desk${tab === "guests" && (selected || creating) ? " has-panel" : ""}`}>
       <aside className="admin-nav">
@@ -216,6 +243,9 @@ export function AdminDesk({
             </p>
           </div>
           <div className="admin-top-actions">
+            <button className="admin-btn admin-btn-ghost" type="button" onClick={downloadExcel}>
+              Descargar Excel
+            </button>
             <label className="admin-search">
               <span className="sr-only">Buscar</span>
               <input
@@ -268,7 +298,16 @@ export function AdminDesk({
                   <th className="is-reply">Comida</th>
                   <th className="is-reply">Nota</th>
                   <th className="is-pay">Regalos</th>
-                  <th className="is-pay">Tours</th>
+                  {TOUR_COLUMNS.map((tour) => (
+                    <th key={tour.id} className="is-pay">
+                      {tour.label}
+                    </th>
+                  ))}
+                  {ACTIVITY_COLUMNS.map((activity) => (
+                    <th key={activity.id} className="is-activity">
+                      {activity.label}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               {visible.map((row) => (
@@ -507,10 +546,9 @@ function HouseholdRows({
   const { household } = row;
   const guests = deskGuests(row);
   const span = guests.length;
-  const columns = 9;
+  const columns = 8 + TOUR_COLUMNS.length + ACTIVITY_COLUMNS.length;
   const plan = row.rsvp?.attending ? planLabel(row.rsvp.people) : "—";
   const gifts = giftLabel(row.contributions);
-  const tours = tourLabel(row.tours);
 
   return (
     <>
@@ -585,9 +623,16 @@ function HouseholdRows({
                   <td className="admin-span is-pay" rowSpan={span}>
                     {gifts}
                   </td>
-                  <td className="admin-span is-pay admin-ellipsis" rowSpan={span} title={tours}>
-                    {tours}
-                  </td>
+                  {TOUR_COLUMNS.map((tour) => (
+                    <td key={tour.id} className="admin-span is-pay" rowSpan={span}>
+                      {tourCell(row.tours, tour.id)}
+                    </td>
+                  ))}
+                  {ACTIVITY_COLUMNS.map((activity) => (
+                    <td key={activity.id} className="admin-span is-activity" rowSpan={span}>
+                      {activityCell(row.activities, activity.id)}
+                    </td>
+                  ))}
                 </>
               ) : null}
             </tr>

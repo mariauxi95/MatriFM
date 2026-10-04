@@ -1,9 +1,9 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Navigate } from "react-router-dom";
 import { LangToggle } from "../components/LangToggle";
 import { useGuest } from "../context/GuestSession";
 import { useLang } from "../context/Language";
-import { authFailure, sendMagicLink, verifyEmailCode } from "../lib/auth";
+import { authFailure, oauthReturnFailure, sendMagicLink, signInWithGoogle, verifyEmailCode } from "../lib/auth";
 
 export function Gate() {
   const { t } = useLang();
@@ -13,6 +13,19 @@ export function Gate() {
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
   const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    const failure = oauthReturnFailure();
+    if (!failure) return;
+    setError(failure === "not_invited" ? t("gateNoMatch") : t("gateGoogleError"));
+    const url = new URL(window.location.href);
+    url.hash = "";
+    url.searchParams.delete("error");
+    url.searchParams.delete("error_code");
+    url.searchParams.delete("error_description");
+    const next = `${url.pathname}${url.search}`;
+    window.history.replaceState({}, "", next);
+  }, [t]);
 
   if (!ready) return <main className="gate" />;
   if (isAdmin && !guest) return <Navigate to="/admin" replace />;
@@ -30,6 +43,19 @@ export function Gate() {
       const failure = authFailure(cause);
       setError(failure === "not_invited" ? t("gateNoMatch") : t("gateSendError"));
     } finally {
+      setSending(false);
+    }
+  }
+
+  async function onGoogle() {
+    if (sending) return;
+    setError("");
+    setSending(true);
+    try {
+      await signInWithGoogle();
+    } catch (cause) {
+      const failure = authFailure(cause);
+      setError(failure === "not_invited" ? t("gateNoMatch") : t("gateGoogleError"));
       setSending(false);
     }
   }
@@ -96,6 +122,10 @@ export function Gate() {
             {t("gateHaveCode")}
           </button>
         )}
+        <p className="gate-or">{t("gateOr")}</p>
+        <button className="btn ghost gate-google" type="button" disabled={sending} onClick={() => void onGoogle()}>
+          {t("gateGoogle")}
+        </button>
         <p className="gate-help">{t("gateHelp")}</p>
       </form>
     </main>

@@ -4,10 +4,12 @@ import { useGuest } from "../context/GuestSession";
 import { defaultSettings } from "../lib/money";
 import {
   adminList,
+  adminListActivitySignups,
   adminListHouseholds,
   adminListRsvps,
   adminTourList,
   fetchSettings,
+  type ActivitySignup,
   type AdminHousehold,
   type AdminRsvp,
   type AdminTourReservation,
@@ -23,21 +25,24 @@ export function Admin() {
   const [rsvps, setRsvps] = useState<AdminRsvp[]>([]);
   const [contributions, setContributions] = useState<Contribution[]>([]);
   const [reservations, setReservations] = useState<AdminTourReservation[]>([]);
+  const [signups, setSignups] = useState<ActivitySignup[]>([]);
   const [settings, setSettings] = useState<PaymentSettings>(defaultSettings);
   const [loaded, setLoaded] = useState(false);
 
   const reload = useCallback(async () => {
-    const [nextHouseholds, nextRsvps, nextPayments, nextTours, nextSettings] = await Promise.all([
+    const [nextHouseholds, nextRsvps, nextPayments, nextTours, nextSignups, nextSettings] = await Promise.all([
       adminListHouseholds(),
       adminListRsvps(),
       adminList(),
       adminTourList(),
+      adminListActivitySignups(),
       fetchSettings(),
     ]);
     setHouseholds(nextHouseholds);
     setRsvps(nextRsvps);
     setContributions(nextPayments.contributions);
     setReservations(nextTours.reservations);
+    setSignups(nextSignups);
     setSettings(nextSettings);
   }, []);
 
@@ -73,6 +78,7 @@ export function Admin() {
       rsvps={rsvps}
       contributions={contributions}
       reservations={reservations}
+      signups={signups}
       settings={settings}
       onSettings={setSettings}
       onReload={reload}

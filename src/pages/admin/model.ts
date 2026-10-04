@@ -1,4 +1,14 @@
-import { compareMembers, type AdminHousehold, type AdminRsvp, type AdminTourReservation, type AgeGroup } from "../../lib/sheets";
+import { tours as tourCatalog } from "../../data/tours";
+import {
+  compareMembers,
+  type ActivitySignup,
+  type AdminHousehold,
+  type AdminRsvp,
+  type AdminTourReservation,
+  type AgeGroup,
+  type GuestKind,
+  type GuestSide,
+} from "../../lib/sheets";
 import type { Contribution, FoodMain, RsvpPerson } from "../../types";
 
 export type DeskFilter = "all" | "no-email" | "waiting" | "coming" | "declined" | "payments";
@@ -12,10 +22,28 @@ export type DeskHousehold = {
   rsvp: AdminRsvp | null;
   contributions: Contribution[];
   tours: AdminTourReservation[];
+  activities: ActivitySignup[];
   missingEmail: boolean;
   reply: ReplyState;
   paymentPending: boolean;
 };
+
+export const TOUR_COLUMNS = tourCatalog.map((tour) => ({ id: tour.id, label: tour.title }));
+
+export const ACTIVITY_COLUMNS = [
+  {
+    id: "volleyball",
+    label: "Volleyball",
+    matches: (item: ActivitySignup) => /volley/i.test(`${item.activityKey} ${item.activityName}`),
+  },
+  {
+    id: "yoga",
+    label: "Yoga",
+    matches: (item: ActivitySignup) => /yoga/i.test(`${item.activityKey} ${item.activityName}`),
+  },
+] as const;
+
+export type ActivityColumnId = (typeof ACTIVITY_COLUMNS)[number]["id"];
 
 const FOOD: Record<FoodMain, string> = {
   meat: "Carne",
@@ -30,6 +58,7 @@ export function buildDesk(
   rsvps: AdminRsvp[],
   contributions: Contribution[],
   tours: AdminTourReservation[],
+  signups: ActivitySignup[] = [],
 ): DeskHousehold[] {
   const rsvpByHousehold = new Map(rsvps.map((row) => [row.householdId, row]));
   return households
@@ -37,6 +66,7 @@ export function buildDesk(
       const rsvp = rsvpByHousehold.get(household.id) ?? null;
       const ownContributions = contributions.filter((row) => row.guestId === household.id);
       const ownTours = tours.filter((row) => row.householdId === household.id);
+      const activities = signups.filter((row) => row.guestId === household.id);
       const missingEmail = household.members.some(
         (member) => !member.email.trim() && member.ageGroup !== "baby" && member.ageGroup !== "kid",
       );
@@ -44,7 +74,16 @@ export function buildDesk(
       const paymentPending =
         ownContributions.some((row) => row.status === "pending") ||
         ownTours.some((row) => row.paymentStatus === "Pendiente");
-      return { household, rsvp, contributions: ownContributions, tours: ownTours, missingEmail, reply, paymentPending };
+      return {
+        household,
+        rsvp,
+        contributions: ownContributions,
+        tours: ownTours,
+        activities,
+        missingEmail,
+        reply,
+        paymentPending,
+      };
     })
     .sort((a, b) => sortName(a).localeCompare(sortName(b), "es"));
 }
@@ -277,7 +316,78 @@ export function giftLabel(items: Contribution[]) {
   return parts.length ? parts.join(" · ") : "—";
 }
 
-export function tourLabel(items: AdminTourReservation[]) {
-  if (!items.length) return "—";
-  return items.map((item) => `${item.tourName} · ${item.paymentStatus}`).join(", ");
+export function tourCell(items: AdminTourReservation[], tourId: string) {
+  const rows = items.filter((item) => item.tourId === tourId);
+  if (!rows.length) return "—";
+  const quantity = rows.reduce((sum, item) => sum + item.quantity, 0);
+  const pending = rows.some((item) => item.paymentStatus !== "Pagado");
+  return `${quantity} · ${pending ? "Pendiente" : "Pagado"}`;
+}
+
+export function activityCell(items: ActivitySignup[], id: ActivityColumnId) {
+  const column = ACTIVITY_COLUMNS.find((item) => item.id === id);
+  const signup = column ? items.find((item) => column.matches(item)) : undefined;
+  if (!signup) return "—";
+  const name = signup.guestName.trim();
+  return name ? `${signup.quantity} · ${name}` : String(signup.quantity);
+}
+
+export function sideLabel(side: GuestSide | null) {
+  if (side === "maru") return "Maru";
+  if (side === "fer") return "Fer";
+  return "";
+}
+
+export function kindLabel(kind: GuestKind | null) {
+  if (kind === "familia") return "Familia";
+  if (kind === "amigos") return "Amigos";
+  return "";
+}
+
+export const EXPORT_HEADERS = [
+  "Invitación",
+  "Código",
+  "Persona",
+  "Email",
+  "Edad",
+  "Lado",
+  "Tipo",
+  "Invitación enviada",
+  "Hotel",
+  "Respuesta",
+  "Plan",
+  "Comida",
+  "Nota",
+  "Regalos",
+  ...TOUR_COLUMNS.map((tour) => tour.label),
+  ...ACTIVITY_COLUMNS.map((activity) => activity.label),
+];
+
+export function guestExportRow(input: {
+  invitation: string;
+  sent: boolean;
+  hotel: string;
+  row: DeskHousehold;
+  guest: DeskGuest;
+}) {
+  const { invitation, sent, hotel, row, guest } = input;
+  const person = rsvpPersonFor(row, guest.fullName);
+  return [
+    invitation,
+    row.household.legacyCode,
+    guest.fullName,
+    guest.email,
+    guest.ageGroup ? ageLabel(guest.ageGroup) : "",
+    sideLabel(row.household.side),
+    kindLabel(row.household.kind),
+    sent ? "Enviada" : "Sin enviar",
+    hotel,
+    replyLabel(row.reply),
+    row.rsvp?.attending ? planLabel(row.rsvp.people) : "—",
+    personFood(person),
+    guestNote(row, guest.fullName),
+    giftLabel(row.contributions),
+    ...TOUR_COLUMNS.map((tour) => tourCell(row.tours, tour.id)),
+    ...ACTIVITY_COLUMNS.map((activity) => activityCell(row.activities, activity.id)),
+  ];
 }
