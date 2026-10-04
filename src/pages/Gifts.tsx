@@ -30,7 +30,6 @@ export function Gifts() {
   const email = guest?.email ?? "";
   const [dedication, setDedication] = useState("");
   const [anonymous, setAnonymous] = useState(false);
-  const [readMore, setReadMore] = useState(false);
 
   useEffect(() => {
     fetchGifts().then(setItems);
@@ -84,26 +83,36 @@ export function Gifts() {
           <h1>
             {t("giftsStart")} <mark className="highlight">{t("giftsMark")}</mark>
           </h1>
-          <p className="gifts-lead">
-            {t("giftsIntro1Start")} <mark className="highlight">{t("giftsIntro1Mark")}</mark>
-          </p>
-          {readMore ? (
-            <div className="gifts-more">
-              <p className="lede">{t("giftsIntro2")}</p>
-              <p className="lede">{t("giftsIntro3")}</p>
-              <p className="lede">{t("giftsIntro4")}</p>
-              <p className="gifts-sign">{t("giftsSign")}</p>
+          <div className="gifts-more">
+            <p className="lede">{t("giftsIntro2")}</p>
+            <p className="lede">{t("giftsIntro3")}</p>
+            <div className="gifts-how">
+              <p className="gifts-how-title">{t("giftsHowTitle")}</p>
+              <ol className="gifts-steps">
+                <li>
+                  <span>1</span>
+                  <div>
+                    <b>{t("giftsStep1Title")}</b>
+                    <p>{t("giftsStep1Body")}</p>
+                  </div>
+                </li>
+                <li>
+                  <span>2</span>
+                  <div>
+                    <b>{t("giftsStep2Title")}</b>
+                    <p>{t("giftsStep2Body")}</p>
+                  </div>
+                </li>
+                <li>
+                  <span>3</span>
+                  <div>
+                    <b>{t("giftsStep3Title")}</b>
+                    <p>{t("giftsStep3Body")}</p>
+                  </div>
+                </li>
+              </ol>
             </div>
-          ) : null}
-          <div className="gifts-head-actions">
-            <button
-              className="btn ghost"
-              type="button"
-              onClick={() => setReadMore((v) => !v)}
-              aria-expanded={readMore}
-            >
-              {readMore ? t("giftsReadLess") : t("giftsReadMore")}
-            </button>
+            <p className="gifts-sign">{t("giftsSign")}</p>
           </div>
         </header>
 
@@ -118,19 +127,19 @@ export function Gifts() {
             const imagePosition = item.imagePosition ?? meta?.imagePosition;
             return (
               <article className="gift-card" key={item.id}>
-                <div className="gift-media">
-                  {image ? (
+                {image ? (
+                  <div className="gift-media">
                     <img
                       src={image}
                       alt=""
                       loading="lazy"
                       style={imagePosition ? { objectPosition: imagePosition } : undefined}
                     />
-                  ) : null}
-                  <span className="gift-emoji" aria-hidden>
-                    {item.emoji}
-                  </span>
-                </div>
+                    <span className="gift-emoji" aria-hidden>
+                      {item.emoji}
+                    </span>
+                  </div>
+                ) : null}
                 <div className="gift-body">
                   <h3>{lang === "es" ? item.titleEs : item.titleEn}</h3>
                   <p>{lang === "es" ? item.descEs : item.descEn}</p>

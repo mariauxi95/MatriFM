@@ -7,7 +7,8 @@ export default defineConfig(({ mode }) => ({
   plugins: [react()],
   server: {
     watch: {
-      // Windows locks the intro film while it plays and crashes the file watcher.
+      // Windows locks a film while it plays and crashes the file watcher.
+      // Files added here are served after the dev server restarts.
       ignored: ["**/public/videos/**"],
     },
   },

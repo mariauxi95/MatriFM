@@ -4,18 +4,32 @@ import { BookingBar } from "../components/BookingBar";
 import { Countdown } from "../components/Countdown";
 import { useLang } from "../context/Language";
 
-const HERO_PHOTOS = [
-  { src: assetUrl("/images/gallery/Marruecos2.png"), position: "center 52%" },
-  { src: assetUrl("/images/gallery/panoramica.jpg"), position: "center 88%" },
-] as const;
+const HERO_PHOTOS = [{ src: assetUrl("/images/gallery/Marruecos2.png"), position: "center 52%" }] as const;
 
 const INTERVAL_MS = 10_000;
 
 export function Home() {
   const { lang, t } = useLang();
   const [index, setIndex] = useState(0);
+  const [thread, setThread] = useState(() => sessionStorage.getItem("fm-thread-enter") === "1");
 
   useEffect(() => {
+    if (!thread) return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) {
+      sessionStorage.removeItem("fm-thread-enter");
+      setThread(false);
+      return;
+    }
+    const id = window.setTimeout(() => {
+      sessionStorage.removeItem("fm-thread-enter");
+      setThread(false);
+    }, 1700);
+    return () => window.clearTimeout(id);
+  }, [thread]);
+
+  useEffect(() => {
+    if (HERO_PHOTOS.length < 2) return;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduced) return;
     const id = window.setInterval(() => {
@@ -42,6 +56,19 @@ export function Home() {
               aria-hidden={i !== index}
             />
           ))}
+          {thread ? (
+            <svg className="hero-thread" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" aria-hidden>
+              <path
+                d="M -30 460 C 90 448 170 410 250 428 C 310 442 360 420 410 432"
+                fill="none"
+                stroke="#D92D3A"
+                strokeWidth="3.2"
+                strokeLinecap="round"
+                pathLength={1}
+                vectorEffect="non-scaling-stroke"
+              />
+            </svg>
+          ) : null}
           <div className="hero-copy">
             <h1 className="hero-title">
               <span className="hero-title-line">{t("heroStart")}</span>
@@ -53,6 +80,7 @@ export function Home() {
           <div className="hero-countdown">
             <Countdown />
           </div>
+          {HERO_PHOTOS.length > 1 ? (
           <div className="hero-slides-nav" role="group" aria-label="Fotos">
             <button
               type="button"
@@ -81,6 +109,7 @@ export function Home() {
               ›
             </button>
           </div>
+          ) : null}
         </div>
         <div className="hero-front">
           <BookingBar />

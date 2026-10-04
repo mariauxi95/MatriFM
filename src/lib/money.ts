@@ -1,12 +1,12 @@
 import type { Currency, PaymentMethod, PaymentSettings } from "../types";
 
 export const defaultSettings: PaymentSettings = {
-  clpName: "{{CLP_ACCOUNT_NAME}}",
-  clpRut: "{{CLP_RUT}}",
-  clpBank: "{{CLP_BANK}}",
-  clpAccountType: "{{CLP_ACCOUNT_TYPE}}",
-  clpAccountNumber: "{{CLP_ACCOUNT_NUMBER}}",
-  clpEmail: "{{CLP_EMAIL}}",
+  clpName: "Maria Auxiliadora Rodriguez",
+  clpRut: "237105400",
+  clpBank: "Banco Falabella",
+  clpAccountType: "Cuenta Corriente",
+  clpAccountNumber: "1-999-829012-1",
+  clpEmail: "mariauxi95@gmail.com",
   interacName: "Fernando Yánez",
   interacEmail: "yanezlfernando@gmail.com",
   interacAutodeposit: true,
@@ -47,7 +47,7 @@ export function formatMoney(amount: number, currency: Currency) {
 }
 
 export function suggestedAmounts(currency: Currency, settings: PaymentSettings) {
-  const usd = [25, 50, 100, 200];
+  const usd = [50, 100, 150, 200];
   return usd.map((value) => ({
     usd: value,
     local: fromUsd(value, currency, settings),

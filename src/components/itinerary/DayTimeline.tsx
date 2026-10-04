@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent, type PointerEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import type { ItineraryDay, ItineraryEvent } from "../../data/itinerary";
 import { useGuest } from "../../context/GuestSession";
 import { useLang } from "../../context/Language";
@@ -14,11 +14,19 @@ function eventTime(event: ItineraryEvent, lang: "es" | "en", orLabel: string) {
   return event.timeAlt ? `${time} ${orLabel} ${event.timeAlt}` : time;
 }
 
-export function DayTimeline({ day, titleKey }: { day: ItineraryDay; titleKey: MessageKey }) {
+export function DayTimeline({
+  day,
+  titleKey,
+  dressExpanded = false,
+  onDress,
+}: {
+  day: ItineraryDay;
+  titleKey: MessageKey;
+  dressExpanded?: boolean;
+  onDress?: () => void;
+}) {
   const { lang, t } = useLang();
   const { guest } = useGuest();
-  const scroller = useRef<HTMLDivElement>(null);
-  const drag = useRef<{ x: number; left: number } | null>(null);
   const [open, setOpen] = useState<ItineraryEvent | null>(null);
   const [signups, setSignups] = useState<ActivitySignup[]>(() => listActivitySignups(guest?.id ?? ""));
 
@@ -27,29 +35,6 @@ export function DayTimeline({ day, titleKey }: { day: ItineraryDay; titleKey: Me
   }, [guest?.id]);
 
   const signedKeys = useMemo(() => new Set(signups.map((item) => item.activityKey)), [signups]);
-
-  function scrollByCard(direction: 1 | -1) {
-    const el = scroller.current;
-    if (!el) return;
-    const card = el.querySelector<HTMLElement>(".timeline-card");
-    const amount = (card?.offsetWidth ?? 280) + 14;
-    el.scrollBy({ left: direction * amount, behavior: "smooth" });
-  }
-
-  function onPointerDown(event: PointerEvent<HTMLDivElement>) {
-    if (event.pointerType === "mouse" && event.button !== 0) return;
-    drag.current = { x: event.clientX, left: event.currentTarget.scrollLeft };
-    event.currentTarget.setPointerCapture(event.pointerId);
-  }
-
-  function onPointerMove(event: PointerEvent<HTMLDivElement>) {
-    if (!drag.current) return;
-    event.currentTarget.scrollLeft = drag.current.left - (event.clientX - drag.current.x);
-  }
-
-  function onPointerUp() {
-    drag.current = null;
-  }
 
   function onSaved(saved: ActivitySignup) {
     setSignups((current) => [saved, ...current.filter((item) => item.activityKey !== saved.activityKey)]);
@@ -61,48 +46,53 @@ export function DayTimeline({ day, titleKey }: { day: ItineraryDay; titleKey: Me
       <div className="card-body timeline-body">
         <div className="timeline-head">
           <h2 className="day-detail-title">{t(titleKey)}</h2>
-          <div className="timeline-nav">
-            <button className="timeline-arrow" type="button" aria-label={t("back")} onClick={() => scrollByCard(-1)}>
-              ‹
-            </button>
-            <button className="timeline-arrow" type="button" aria-label={t("next")} onClick={() => scrollByCard(1)}>
-              ›
-            </button>
-          </div>
         </div>
-        <div
-          className="timeline-track"
-          ref={scroller}
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerCancel={onPointerUp}
-        >
-          {day.events.map((event) => {
+        <ol className="timeline-track">
+          {day.events.map((event, index) => {
             const key = activityKey(day.id, event);
             const signed = signedKeys.has(key);
             const title = lang === "es" ? event.titleEs : event.titleEn;
             const time = eventTime(event, lang, t("transportOr"));
             return (
-              <article className="timeline-card" key={`${day.id}-${event.time}-${event.titleEs}`}>
-                <img src={event.image} alt="" draggable={false} />
-                <div>
+              <li
+                className={`timeline-step${index % 2 === 1 ? " is-flip" : ""}`}
+                key={`${day.id}-${event.time}-${event.titleEs}`}
+              >
+                <div className="timeline-media">
+                  <img src={event.image} alt="" />
+                </div>
+                <span className="timeline-node" aria-hidden />
+                <div className="timeline-copy">
                   <b>{time}</b>
                   {title ? (
                     <p>
                       {title}
-                      {event.optional ? ` · ${t("optional")}` : ""}
+                      {event.optional ? ` · ${t(event.free ? "optionalFree" : "optional")}` : ""}
                     </p>
                   ) : null}
                   {event.placeEs ? <small>{lang === "es" ? event.placeEs : event.placeEn}</small> : null}
+                  {event.dresscode ? (
+                    day.pinterestBoard ? (
+                      <button
+                        className="pill-link timeline-dress"
+                        type="button"
+                        aria-expanded={dressExpanded}
+                        onClick={onDress}
+                      >
+                        {t("dresscode")}: {lang === "es" ? day.dressEs : day.dressEn}
+                      </button>
+                    ) : (
+                      <a className="pill-link timeline-dress" href={day.dressLink} target="_blank" rel="noreferrer">
+                        {t("dresscode")}: {lang === "es" ? day.dressEs : day.dressEn}
+                      </a>
+                    )
+                  ) : null}
                   {event.signup ? (
                     <button
                       className={`pill timeline-signup${signed ? " is-signed" : ""}`}
                       type="button"
                       aria-pressed={signed}
-                      onPointerDown={(pointer) => pointer.stopPropagation()}
-                      onClick={(click) => {
-                        click.stopPropagation();
+                      onClick={() => {
                         if (!signed) setOpen(event);
                       }}
                     >
@@ -110,10 +100,10 @@ export function DayTimeline({ day, titleKey }: { day: ItineraryDay; titleKey: Me
                     </button>
                   ) : null}
                 </div>
-              </article>
+              </li>
             );
           })}
-        </div>
+        </ol>
       </div>
       {open ? (
         <ActivitySignupDrawer

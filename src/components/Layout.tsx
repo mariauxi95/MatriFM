@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useLang } from "../context/Language";
 import { LangToggle } from "./LangToggle";
+import { openWelcomeFilm } from "./WelcomeFilm";
 
 const links = [
   { to: "home", key: "navHome" as const },
@@ -45,6 +46,12 @@ export function Layout() {
           ))}
         </nav>
         <div className="topbar-end">
+          <button className="story-pill" type="button" onClick={() => openWelcomeFilm()}>
+            <span className="story-pill-play" aria-hidden>
+              ▶
+            </span>
+            <span className="story-pill-label">{t("welcomeFilm")}</span>
+          </button>
           <LangToggle />
           <NavLink className="btn ghost nav-cta" to="rsvp" onClick={close}>
             {t("confirm")}

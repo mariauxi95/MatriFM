@@ -10,6 +10,8 @@ export type Hotel = {
   lng: number;
   distanceEs?: string;
   distanceEn?: string;
+  pillEs?: string;
+  pillEn?: string;
   blurbEs: string;
   blurbEn: string;
   badgeEs?: string;
@@ -24,6 +26,19 @@ export type Hotel = {
   featured?: boolean;
   capacityNoteEs?: string;
   capacityNoteEn?: string;
+  facts?: StayFact[];
+};
+
+export type StayFactIcon = "pin" | "price" | "coffee" | "ac" | "people" | "bed" | "pool";
+export type StayFactTone = "muted" | "gold" | "warm" | "warn" | "good";
+
+export type StayFact = {
+  icon: StayFactIcon;
+  tone: StayFactTone;
+  labelEs: string;
+  labelEn: string;
+  /** Extra dollar signs drawn lighter, as on the Bohemia price row. */
+  dim?: string;
 };
 
 export const STAY_CHECKIN = "2027-03-19";
@@ -48,6 +63,16 @@ export function mapsOpenUrl(lat: number, lng: number): string {
   return `https://www.google.com/maps?q=${lat},${lng}&z=15`;
 }
 
+const walk3: StayFact[] = [
+  { icon: "pin", tone: "muted", labelEs: "3 min caminando", labelEn: "3 min walk" },
+  { icon: "price", tone: "gold", labelEs: "$$$", labelEn: "$$$" },
+  { icon: "coffee", tone: "warn", labelEs: "Sin desayuno", labelEn: "No breakfast" },
+  { icon: "ac", tone: "warn", labelEs: "Sin AC", labelEn: "No AC" },
+  { icon: "people", tone: "good", labelEs: "2 a 4 personas por habitación", labelEn: "2 to 4 people per room" },
+  { icon: "bed", tone: "muted", labelEs: "Individual", labelEn: "Private" },
+  { icon: "pool", tone: "muted", labelEs: "Sin piscina", labelEn: "No pool" },
+];
+
 /** Lodging near Bohemia — Save the Date names + official Booking/web links. */
 export const hotels: Hotel[] = [
   {
@@ -71,8 +96,6 @@ export const hotels: Hotel[] = [
       "Our venue and the heart of the weekend. Ideal if you want to stay steps from the beach, welcome dinner, ceremony and party.",
     badgeEs: "VENUE · CUPOS LIMITADOS",
     badgeEn: "VENUE · LIMITED SPOTS",
-    capacityNoteEs: "Capacidad máxima: 50 huéspedes.",
-    capacityNoteEn: "Maximum capacity: 50 guests.",
     noteEs: "Las reservas en Bohemia se coordinan directamente con Maru & Fer.",
     noteEn: "Bohemia stays are coordinated directly with Maru & Fer.",
     websiteUrl: "https://www.bohemiabeach.co/es/",
@@ -81,6 +104,15 @@ export const hotels: Hotel[] = [
     photosUrl:
       "https://www.booking.com/hotel/co/bohemia-beach.es.html?aid=2311236&label=postbooking_confemail&sid=236cff1f496e0d5703ccd7f3d23e1a12&checkin=2027-03-19&checkout=2027-03-21&dest_id=3311104&dest_type=hotel&dist=0&group_adults=1&group_children=0&hpos=1&no_rooms=1&req_adults=1&req_children=0&room1=A&sb_price_type=total&soh=1&sr_order=popularity&srepoch=1790783840&srpvid=925d702fc2e20038&type=total&ucfs=1&activeTab=photosGallery#no_availability_msg",
     featured: true,
+    facts: [
+      { icon: "pin", tone: "muted", labelEs: "En el centro de eventos", labelEn: "At the event venue" },
+      { icon: "price", tone: "gold", labelEs: "$", labelEn: "$", dim: "$" },
+      { icon: "coffee", tone: "warm", labelEs: "Desayuno incluido", labelEn: "Breakfast included" },
+      { icon: "ac", tone: "warm", labelEs: "Sin AC", labelEn: "No AC" },
+      { icon: "people", tone: "good", labelEs: "Hasta 50 personas", labelEn: "Up to 50 people" },
+      { icon: "bed", tone: "muted", labelEs: "Compartido", labelEn: "Shared" },
+      { icon: "pool", tone: "muted", labelEs: "Piscina", labelEn: "Pool" },
+    ],
   },
   {
     id: "gaelia",
@@ -97,15 +129,18 @@ export const hotels: Hotel[] = [
     lng: -73.8405,
     distanceEs: "Al lado de Bohemia · Mendihuaca",
     distanceEn: "Next to Bohemia · Mendihuaca",
-    blurbEs: "Hotel frente al mar en Mendihuaca, a pasos de la playa y muy cerca del venue.",
-    blurbEn: "Beachfront hotel in Mendihuaca, steps from the sand and very close to the venue.",
+    pillEs: "Cabañas playeras",
+    pillEn: "Beach cabins",
+    blurbEs: "Ideal para grupos pequeños o quienes buscan una opción más privada.",
+    blurbEn: "Ideal for small groups or anyone looking for a more private option.",
     websiteUrl: "https://engine.lobbypms.com/gaelia-beach",
     bookingUrl:
       "https://www.booking.com/hotel/co/gaelia.es.html?label=postbooking_confemail&sid=756fa281495f8d69b4a63461ce1c5753&aid=2311236&ucfs=1&arphpl=1&dest_id=-585440&dest_type=city&group_children=0&req_adults=1&req_children=0&hpos=6&hapos=31&sr_order=popularity&srpvid=992a6e92d4d6109d&srepoch=1790783469&all_sr_blocks=990111701_372874578_2_2_0&highlighted_blocks=990111701_372874578_2_2_0&matching_block_id=990111701_372874578_2_2_0&sr_pri_blocks=990111701_372874578_2_2_0__96000000&from=searchresults",
+    facts: walk3,
   },
   {
     id: "blue-mango",
-    name: "Blue Mango Beach Hotel",
+    name: "Agua Salá / Blue Mango Beach",
     images: [
       "https://cf.bstatic.com/xdata/images/hotel/max1024x768/867955838.jpg?k=869fe5901a36a5caff4617e851e28915112a7e77451aaa336370528d783636e4&o=",
       "https://cf.bstatic.com/xdata/images/hotel/max1024x768/889169065.jpg?k=d3ad8a8149472e8ce5f3125905509f5c5a2342b099c542665c9481164a2f4e2a&o=",
@@ -118,11 +153,22 @@ export const hotels: Hotel[] = [
     lng: -73.8378,
     distanceEs: "Zona Costeño Beach · Guachaca",
     distanceEn: "Costeño Beach area · Guachaca",
-    blurbEs: "Hotel de playa con piscina frente al Caribe, en la misma zona de Guachaca.",
-    blurbEn: "Beach hotel with a pool facing the Caribbean, in the Guachaca area.",
+    pillEs: "Hotel Familiar",
+    pillEn: "Family hotel",
+    blurbEs: "Ideal para un ambiente familiar y kids friendly.",
+    blurbEn: "Ideal for a family atmosphere, and kids friendly.",
     websiteUrl: "https://engine.lobbypms.com/agua-sal-restaurante-alojamiento",
     bookingUrl:
       "https://www.booking.com/hotel/co/blue-mango-beach.es.html?aid=2311236&label=postbooking_confemail&sid=236cff1f496e0d5703ccd7f3d23e1a12&all_sr_blocks=432507516_129943673_2_1_0_1449025&dest_id=-585440&dest_type=city&dist=0&group_children=0&hapos=1&highlighted_blocks=432507516_129943673_2_1_0_1449025&hpos=1&matching_block_id=432507516_129943673_2_1_0_1449025&req_adults=1&req_children=0&room1=A&sb_price_type=total&sr_order=popularity&sr_pri_blocks=432507516_129943673_2_1_0_1449025_35640000&srepoch=1790783566&srpvid=992a6e92d4d6109d&type=total&ucfs=1",
+    facts: [
+      { icon: "pin", tone: "muted", labelEs: "3 min caminando", labelEn: "3 min walk" },
+      { icon: "price", tone: "gold", labelEs: "$$", labelEn: "$$" },
+      { icon: "coffee", tone: "warm", labelEs: "Desayuno incluido", labelEn: "Breakfast included" },
+      { icon: "ac", tone: "good", labelEs: "Con AC", labelEn: "With AC" },
+      { icon: "people", tone: "good", labelEs: "2-3 personas por habitación", labelEn: "2–3 people per room" },
+      { icon: "bed", tone: "muted", labelEs: "Individual", labelEn: "Private" },
+      { icon: "pool", tone: "muted", labelEs: "Piscina", labelEn: "Pool" },
+    ],
   },
   {
     id: "iwana",
@@ -138,11 +184,20 @@ export const hotels: Hotel[] = [
     lng: -73.8412,
     distanceEs: "Primera línea de playa · zona Guachaca",
     distanceEn: "Beachfront · Guachaca area",
-    blurbEs: "Refugio boutique frente al mar, con suites íntimas y ambiente tranquilo.",
-    blurbEn: "Boutique beachfront retreat with intimate suites and a quiet atmosphere.",
+    pillEs: "Cabañas premium",
+    pillEn: "Premium cabins",
+    blurbEs: "Refugio boutique frente al mar, con suites y ambiente tranquilo.",
+    blurbEn: "Boutique beachfront retreat with suites and a quiet atmosphere.",
     websiteUrl: "https://reservas.casaiwana.com/casa-iwana",
     bookingUrl:
       "https://www.booking.com/hotel/co/casa-iwana-suites-delux-playa-y-ac.es.html?aid=2311236&label=postbooking_confemail&sid=236cff1f496e0d5703ccd7f3d23e1a12&all_sr_blocks=1475824502_419006319_2_1_0&dest_id=-585440&dest_type=city&dist=0&group_children=0&hapos=2&highlighted_blocks=1475824502_419006319_2_1_0&hpos=2&matching_block_id=1475824502_419006319_2_1_0&req_adults=1&req_children=0&room1=A&sb_price_type=total&sr_order=popularity&sr_pri_blocks=1475824502_419006319_2_1_0__184786648&srepoch=1790783395&srpvid=992a6e92d4d6109d&type=total&ucfs=1",
+    facts: walk3.map((fact) => {
+      if (fact.icon === "price") return { ...fact, labelEs: "$$$$", labelEn: "$$$$" };
+      if (fact.icon === "coffee") {
+        return { ...fact, tone: "muted" as const, labelEs: "Por consultar", labelEn: "On request" };
+      }
+      return fact;
+    }),
   },
   {
     id: "cayena",
@@ -158,9 +213,20 @@ export const hotels: Hotel[] = [
     lng: -73.8288,
     distanceEs: "Guachaca · cerca del Tayrona",
     distanceEn: "Guachaca · near Tayrona",
-    blurbEs: "Boutique hotel de la colección Masaya, pensado para descanso y bienestar.",
-    blurbEn: "Masaya Collection boutique hotel, geared toward rest and wellness.",
+    pillEs: "Habitaciones premium",
+    pillEn: "Premium rooms",
+    blurbEs: "Hotel boutique para quienes buscan una experiencia más premium, descanso y bienestar.",
+    blurbEn: "A boutique hotel for anyone looking for a more premium experience, rest and wellness.",
     websiteUrl: "https://www.masaya-experience.com/en/collection/tayrona/",
     bookingUrl: "https://www.booking.com/hotel/co/cayena-by-masaya-collection.html",
+    facts: [
+      { icon: "pin", tone: "muted", labelEs: "10 min caminando", labelEn: "10 min walk" },
+      { icon: "price", tone: "gold", labelEs: "$$$$", labelEn: "$$$$" },
+      { icon: "coffee", tone: "warm", labelEs: "Desayuno incluido", labelEn: "Breakfast included" },
+      { icon: "ac", tone: "good", labelEs: "Con AC", labelEn: "With AC" },
+      { icon: "people", tone: "good", labelEs: "2 personas por habitación", labelEn: "2 people per room" },
+      { icon: "bed", tone: "muted", labelEs: "Individual", labelEn: "Private" },
+      { icon: "pool", tone: "muted", labelEs: "Piscina", labelEn: "Pool" },
+    ],
   },
 ];

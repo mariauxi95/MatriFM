@@ -72,14 +72,30 @@ export function ToursSection({ onBack }: { onBack: () => void }) {
     <section className="travel-section tours-section" id="travel-tours">
       <h2>¿Seguimos celebrando?</h2>
       <div className="tours-intro">
-        <p>Después de la boda, la celebración continúa.</p>
         <p>
-          Vamos a sumarnos a algunos tours y nos encantaría que quienes quieran puedan acompañarnos. Cada actividad es
-          opcional, para que elijas según tus tiempos, gustos y presupuesto.
+          Después de la boda, la celebración continúa. Vamos a sumarnos a algunos tours y nos encantaría que quienes
+          quieran puedan acompañarnos. Cada actividad es opcional: elige según tus tiempos, gustos y presupuesto.
         </p>
-        <p>
-          Revisa los detalles de cada experiencia, inscríbete y completa tu reserva desde el enlace de pago
-          correspondiente. Así podremos saber quiénes se suman y coordinarnos mejor como grupo.
+        <ol className="tours-steps">
+          <li>
+            <span>1</span>
+            <p>Revisa los detalles de cada experiencia.</p>
+          </li>
+          <li>
+            <span>2</span>
+            <p>Inscríbete y completa tu reserva desde la ventana.</p>
+          </li>
+          <li>
+            <span>3</span>
+            <p>Entre noviembre y diciembre te enviaremos el enlace de pago por el WhatsApp de la tripulación.</p>
+          </li>
+          <li>
+            <span>4</span>
+            <p>Paga y confirma tu reserva.</p>
+          </li>
+        </ol>
+        <p className="tours-intro-note">
+          Con la reserva anticipada podremos saber quiénes se suman y coordinarnos mejor como grupo.
         </p>
       </div>
 
@@ -177,7 +193,23 @@ function TourDetails({ tour, onClose, onJoin }: { tour: Tour; onClose: () => voi
           <span>{tour.meetingPoint}</span>
         </li>
       </ul>
-      <p>{tour.description}</p>
+      {tour.sections?.length ? (
+        tour.sections.map((section) => (
+          <div className="tour-block" key={section.title}>
+            <h3>{section.title}</h3>
+            {section.body ? <p>{section.body}</p> : null}
+            {section.items?.length ? (
+              <ul className="tour-points">
+                {section.items.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        ))
+      ) : (
+        <p>{tour.description}</p>
+      )}
       {tour.note ? <p className="tour-note">{tour.note}</p> : null}
       <div className="choice-grid">
         <button className="btn ghost" type="button" onClick={onClose}>
@@ -327,13 +359,18 @@ function TourSuccess({ tour, onClose }: { tour: Tour; onClose: () => void }) {
   return (
     <div className="success">
       <h2>¡Ya estás en la lista! 🎉</h2>
-      <p>Ahora solo falta completar el pago para asegurar tu reserva.</p>
       {paymentUrl ? (
-        <a className="btn" href={paymentUrl} target="_blank" rel="noreferrer">
-          Pagar y reservar
-        </a>
+        <>
+          <p>Ahora solo falta completar el pago para confirmar tu reserva.</p>
+          <a className="btn" href={paymentUrl} target="_blank" rel="noreferrer">
+            Pagar y confirmar
+          </a>
+        </>
       ) : (
-        <p>El enlace de pago de este tour se publicará pronto. Tu inscripción ya quedó guardada.</p>
+        <p>
+          Tu inscripción quedó guardada. Entre noviembre y diciembre te enviaremos el enlace de pago por el WhatsApp de
+          la tripulación.
+        </p>
       )}
       <button className="btn ghost" type="button" onClick={onClose}>
         Cerrar

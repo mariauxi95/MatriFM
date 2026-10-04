@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Outlet, useParams } from "react-router-dom";
+import { WelcomeFilm } from "../components/WelcomeFilm";
 import { useGuest } from "../context/GuestSession";
 import { fetchGuest, findLocalGuest } from "../lib/sheets";
 
@@ -23,5 +24,10 @@ export function InviteShell() {
     };
   }, [code, setGuest]);
 
-  return <Outlet />;
+  return (
+    <>
+      <Outlet />
+      <WelcomeFilm />
+    </>
+  );
 }
