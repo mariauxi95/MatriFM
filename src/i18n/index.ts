@@ -286,7 +286,7 @@ export const messages = {
     stayWalk:
       "🌴Todas quedan con acceso caminando, y para compartir durante el día en el sector playa.",
     stayP2:
-      "Esta zona tiene poquitos hoteles y suelen llenarse rápido, así que si ya saben que vienen, les recomendamos reservar con tiempo.",
+      "Esta zona tiene poquitos hoteles y suelen llenarse rápido, así que les recomendamos reservar con tiempo.",
     stayP3: "Nosotros ponemos la fiesta. Ustedes solo elijan dónde caer rendidos después. 🤍",
     stayMapLabel: "Mapa de alojamientos cerca de Bohemia",
     stayViewHotel: "Ver hotel",
@@ -647,7 +647,7 @@ export const messages = {
     stayWalk:
       "🌴All are within walking distance, and close enough to spend the day together on the beach.",
     stayP2:
-      "This area has only a handful of hotels and they fill up quickly, so if you already know you're coming, we recommend booking early.",
+      "This area has only a handful of hotels and they fill up quickly, so we recommend booking early.",
     stayP3: "We'll bring the party. You just pick where to collapse afterward. 🤍",
     stayMapLabel: "Map of lodging near Bohemia",
     stayViewHotel: "View hotel",

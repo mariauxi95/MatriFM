@@ -15,6 +15,7 @@ export type Tour = {
   date: string;
   time: string;
   pricePerPerson: number;
+  priceUsd: number;
   meetingPoint: string;
   description: string;
   sections?: TourSection[];
@@ -32,6 +33,7 @@ export const tours: Tour[] = [
     date: "Domingo 21 de marzo",
     time: "11:00 a 17:30 hrs",
     pricePerPerson: 150000,
+    priceUsd: 45,
     meetingPoint: "Bohemia Beach",
     description:
       "Se inicia con la visita a las Cascadas del Río Guachaca y luego se continúa hacia la Playa Buritaca.",
@@ -69,6 +71,7 @@ export const tours: Tour[] = [
     date: "Lunes 22 de marzo",
     time: "18:00 a 22:00 hrs",
     pricePerPerson: 180000,
+    priceUsd: 55,
     meetingPoint: "Por confirmar",
     description:
       "La experiencia comienza a bordo de un catamarán con un recorrido nocturno por las bahías de Santa Marta, acompañado de música y ambiente de fiesta.",
@@ -107,6 +110,7 @@ export const tours: Tour[] = [
     date: "Martes 23 de marzo",
     time: "9:00 a 17:30 hrs",
     pricePerPerson: 210000,
+    priceUsd: 65,
     meetingPoint: "Por confirmar",
     description:
       "El recorrido se realiza en lancha por la costa del Parque Tayrona, pasando por distintas playas y bahías antes de llegar a Playa Cinto.",
@@ -142,4 +146,8 @@ export function tourPaymentUrl(tour: Tour) {
 
 export function formatCop(amount: number) {
   return `$${new Intl.NumberFormat("es-CO").format(amount)} COP`;
+}
+
+export function formatTourPrice(tour: Tour) {
+  return `${formatCop(tour.pricePerPerson)} pp (${tour.priceUsd} USD)`;
 }

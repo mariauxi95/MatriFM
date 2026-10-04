@@ -1,6 +1,6 @@
 import { useState, type FormEvent, type SVGProps } from "react";
 import { useGuest } from "../../context/GuestSession";
-import { formatCop, tourPaymentUrl, tours, type Tour } from "../../data/tours";
+import { formatCop, formatTourPrice, tourPaymentUrl, tours, type Tour } from "../../data/tours";
 import { submitTourReservation } from "../../lib/sheets";
 
 type Step = "details" | "form" | "success";
@@ -117,7 +117,7 @@ export function ToursSection({ onBack }: { onBack: () => void }) {
                 </li>
                 <li>
                   <IconPrice />
-                  <span>{formatCop(item.pricePerPerson)} por persona</span>
+                  <span>{formatTourPrice(item)}</span>
                 </li>
                 <li>
                   <IconPin />
@@ -186,7 +186,7 @@ function TourDetails({ tour, onClose, onJoin }: { tour: Tour; onClose: () => voi
         </li>
         <li>
           <IconPrice />
-          <span>{formatCop(tour.pricePerPerson)} por persona</span>
+          <span>{formatTourPrice(tour)}</span>
         </li>
         <li>
           <IconPin />
@@ -301,7 +301,7 @@ function TourForm({
       </label>
       <label className="field">
         <span>Precio por persona</span>
-        <input readOnly value={formatCop(tour.pricePerPerson)} />
+        <input readOnly value={formatTourPrice(tour)} />
       </label>
       <label className="field">
         <span>Nombre y apellido *</span>

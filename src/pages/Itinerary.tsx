@@ -34,7 +34,15 @@ export function Itinerary() {
               <img
                 src={day.photo}
                 alt=""
-                style={day.photoPosition ? { objectPosition: day.photoPosition } : undefined}
+                style={
+                  day.photoPosition || day.photoScale
+                    ? {
+                        objectPosition: day.photoPosition,
+                        transform: day.photoScale ? `scale(${day.photoScale})` : undefined,
+                        transformOrigin: day.photoPosition ?? "center",
+                      }
+                    : undefined
+                }
               />
               <div className="day-body">
                 <p className="eyebrow">{lang === "es" ? day.dateLabelEs : day.dateLabelEn}</p>
