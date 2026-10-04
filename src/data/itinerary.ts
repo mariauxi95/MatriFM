@@ -47,7 +47,7 @@ export const itinerary: ItineraryDay[] = [
     titleEs: "Last Stop Before “I Do”",
     titleEn: "Last Stop Before “I Do”",
     time: "7:00 p. m.",
-    photo: assetUrl("/images/gallery/cita.jpg"),
+    photo: assetUrl("/images/gallery/cita.jpg?v=2"),
     dressEs: "Blanco · casual playa",
     dressEn: "White · casual beach",
     dressLink: "https://www.pinterest.com/mariauxirodrguez/last-stop-before-i-do/",
