@@ -4,7 +4,7 @@ import { useLang } from "../context/Language";
 
 export function BookingBar() {
   const { t } = useLang();
-  const { guest } = useGuest();
+  const { guest, hasReply } = useGuest();
   return (
     <section className="booking">
       <div className="booking-grid">
@@ -25,7 +25,7 @@ export function BookingBar() {
           <b>{guest?.guestLimit ?? 1}</b>
         </div>
         <Link className="btn booking-go" to="../rsvp">
-          {t("confirm")}
+          {t(hasReply ? "myRsvp" : "confirm")}
         </Link>
       </div>
     </section>

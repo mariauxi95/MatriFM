@@ -1,6 +1,7 @@
 import { assetUrl } from "../lib/assets";
 import { useEffect, useRef, useState } from "react";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { useGuest } from "../context/GuestSession";
 import { useLang } from "../context/Language";
 import { LangToggle } from "./LangToggle";
 import { openWelcomeFilm } from "./WelcomeFilm";
@@ -15,6 +16,8 @@ const links = [
 
 export function Layout() {
   const { t } = useLang();
+  const { isAdmin, signOut, hasReply } = useGuest();
+  const navigate = useNavigate();
   const location = useLocation();
   const mainRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
@@ -53,8 +56,13 @@ export function Layout() {
             <span className="story-pill-label">{t("welcomeFilm")}</span>
           </button>
           <LangToggle />
-          <NavLink className="btn ghost nav-cta" to="rsvp" onClick={close}>
-            {t("confirm")}
+          {isAdmin ? (
+            <NavLink className="btn ghost nav-cta" to="/admin" onClick={close}>
+              {t("adminLink")}
+            </NavLink>
+          ) : null}
+          <NavLink id="nav-my-rsvp" className="btn ghost nav-cta" to="rsvp" onClick={close}>
+            {t(hasReply ? "myRsvp" : "confirm")}
           </NavLink>
           <button
             className={`nav-burger${open ? " is-open" : ""}`}
@@ -67,6 +75,28 @@ export function Layout() {
             <span />
             <span />
           </button>
+          <button
+            className="nav-signout"
+            type="button"
+            aria-label={t("signOut")}
+            title={t("signOut")}
+            onClick={() => {
+              close();
+              void signOut().then(() => navigate("/"));
+            }}
+          >
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+              <path
+                d="M10 7V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2v-2"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path d="M15 12H4M7 9l-3 3 3 3" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
         </div>
       </header>
       {open ? (
@@ -77,8 +107,13 @@ export function Layout() {
             </NavLink>
           ))}
           <NavLink className="btn ghost nav-cta" to="rsvp" onClick={close}>
-            {t("confirm")}
+            {t(hasReply ? "myRsvp" : "confirm")}
           </NavLink>
+          {isAdmin ? (
+            <NavLink className="btn ghost nav-cta" to="/admin" onClick={close}>
+              {t("adminLink")}
+            </NavLink>
+          ) : null}
         </nav>
       ) : null}
       <div className="layout-main" ref={mainRef}>

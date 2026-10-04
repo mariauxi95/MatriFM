@@ -1,6 +1,6 @@
 # Maru & Fer · Invitación digital
 
-Invitación destino estilo aerolínea / *The Long Distance Club*.
+Invitación en [matrimarifer.com](https://matrimarifer.com). Los invitados entran con el email que está en su ficha. La lista, el RSVP y los regalos viven en Supabase.
 
 ## Desarrollo
 
@@ -9,21 +9,6 @@ npm install
 npm run dev
 ```
 
-Abre un código de prueba, por ejemplo:
+Copia `.env.example` a `.env` y completa `VITE_SUPABASE_URL` y `VITE_SUPABASE_PUBLISHABLE_KEY`.
 
-[http://localhost:5173/invite/191201](http://localhost:5173/invite/191201)
-
-Admin local: [http://localhost:5173/admin](http://localhost:5173/admin) con token `change-me` (o el de `.env`).
-
-## Persistencia
-
-- Sin `VITE_SHEETS_API`: RSVP, regalos y FM Club quedan en `localStorage`.
-- Con Google Sheet **InvitadosMatri**: sigue `sheets/README.md`.
-
-## Contenido
-
-Paleta, fotos y ilustraciones viven en `public/images`. La lista de invitados se genera con:
-
-```bash
-python scripts/extract_guests.py
-```
+Abre [http://localhost:5173](http://localhost:5173). El admin es [http://localhost:5173/admin](http://localhost:5173/admin) para las cuentas marcadas en `app_admins`.

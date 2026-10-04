@@ -12,7 +12,34 @@ export function emptyPerson(attendeeType: RsvpPerson["attendeeType"] = "guest"):
       dietaryRequirements: ["none"],
       dietaryOther: "",
     },
+    note: "",
   };
+}
+
+export function peopleFromMembers(
+  members: { fullName: string; ageGroup: "baby" | "kid" | "teen" | "adult" }[],
+): RsvpPerson[] {
+  return members.map((member, index) => {
+    const person = emptyPerson(index === 0 ? "primary" : "guest");
+    person.name = member.fullName;
+    if (member.ageGroup === "baby" || member.ageGroup === "kid") {
+      person.food = { ...person.food, mainPreference: "kids", sidePreference: null };
+    }
+    return person;
+  });
+}
+
+export function peopleFromReply(saved: RsvpPerson[], danceSong: string): RsvpPerson[] {
+  const people = saved.map((person, index) => ({
+    ...emptyPerson(index === 0 ? "primary" : person.attendeeType),
+    ...person,
+    note: person.note ?? "",
+    food: { ...emptyPerson().food, ...person.food },
+  }));
+  if (!people.some((person) => person.note?.trim()) && danceSong.trim() && people[0]) {
+    people[0] = { ...people[0], note: danceSong };
+  }
+  return people;
 }
 
 export function emptyChild(): RsvpChild {

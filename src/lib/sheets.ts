@@ -1,14 +1,16 @@
-import guestsSeed from "../data/guests.json";
 import { clubHosts } from "../data/club";
 import { gifts as giftSeed } from "../data/gifts";
 import { defaultSettings, toUsd } from "./money";
-import { uid } from "./ids";
+import { parsePlans } from "./plans";
+import { supabase } from "./supabase";
 import type {
   ClubMessage,
   Contribution,
   GiftPublic,
-  Guest,
+  GuestPlans,
   PaymentSettings,
+  RsvpChild,
+  RsvpPerson,
   RsvpRecord,
   TourReservation,
 } from "../types";
@@ -24,136 +26,321 @@ export type ActivitySignup = {
   createdAt: string;
 };
 
-const guests = guestsSeed as Guest[];
+export type AgeGroup = "baby" | "kid" | "teen" | "adult";
 
-const KEYS = {
-  rsvp: "fm-rsvp",
-  contrib: "fm-contrib",
-  club: "fm-club",
-  settings: "fm-settings",
-  tours: "fm-tour-reservations",
-  activities: "fm-activity-signups",
+export function ageGroupOf(value: string | null | undefined): AgeGroup {
+  if (value === "baby" || value === "kid" || value === "teen") return value;
+  return "adult";
+}
+
+export type AdminMember = {
+  id: string;
+  fullName: string;
+  email: string;
+  ageGroup: AgeGroup;
+  isPrimary: boolean;
 };
 
-function read<T>(key: string, fallback: T): T {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : fallback;
-  } catch {
-    return fallback;
-  }
+export function compareMembers(a: AdminMember, b: AdminMember) {
+  return Number(b.isPrimary) - Number(a.isPrimary) || a.fullName.localeCompare(b.fullName, "es");
 }
 
-function write<T>(key: string, value: T) {
-  localStorage.setItem(key, JSON.stringify(value));
+export type GuestSide = "maru" | "fer";
+export type GuestKind = "familia" | "amigos";
+
+export type AdminHousehold = {
+  id: string;
+  legacyCode: string;
+  displayName: string;
+  guestLimit: number;
+  hasChildren: boolean;
+  childrenLimit: number;
+  side: GuestSide | null;
+  kind: GuestKind | null;
+  phone: string;
+  originCity: string;
+  lodging: string;
+  extendTrip: string;
+  stdAttending: string;
+  stdSentAt: string;
+  companionCount: number | null;
+  teenCount: number | null;
+  childCount: number | null;
+  inviteSentAt: string;
+  members: AdminMember[];
+};
+
+function fail(error: { message: string } | null): asserts error is null {
+  if (error) throw new Error(error.message);
 }
 
-const api = import.meta.env.VITE_SHEETS_API?.trim() ?? "";
-
-async function remote<T>(action: string, payload?: Record<string, unknown>): Promise<T> {
-  const url = new URL(api);
-  url.searchParams.set("action", action);
-  const response = await fetch(url.toString(), {
-    method: payload ? "POST" : "GET",
-    headers: payload ? { "Content-Type": "text/plain;charset=utf-8" } : undefined,
-    body: payload ? JSON.stringify({ action, ...payload }) : undefined,
-  });
-  if (!response.ok) throw new Error("Sheets request failed");
-  return (await response.json()) as T;
+async function householdId(): Promise<string | null> {
+  const { data, error } = await supabase.rpc("my_household_id");
+  fail(error);
+  return (data as string | null) ?? null;
 }
 
-function publicGifts(contributions: Contribution[]): GiftPublic[] {
+async function requireHouseholdId() {
+  const id = await householdId();
+  if (!id) throw new Error("No household");
+  return id;
+}
+
+type RsvpRow = {
+  id: string;
+  legacy_code: string;
+  display_name: string;
+  attending: boolean;
+  people: RsvpPerson[];
+  children: RsvpChild[];
+  dance_song: string;
+  message: string;
+  created_at: string;
+};
+
+function mapRsvp(row: RsvpRow): RsvpRecord {
+  return {
+    id: row.id,
+    guestId: row.legacy_code,
+    displayName: row.display_name,
+    attending: row.attending,
+    people: row.people ?? [],
+    children: row.children ?? [],
+    danceSong: row.dance_song ?? "",
+    message: row.message ?? "",
+    createdAt: row.created_at,
+  };
+}
+
+type ContributionRow = {
+  id: string;
+  household_id: string | null;
+  gift_id: string;
+  guest_name: string;
+  email: string;
+  amount_original: number;
+  currency_original: Contribution["currencyOriginal"];
+  fx_rate_used: number;
+  amount_usd_normalized: number;
+  method: Contribution["method"];
+  dedication: string;
+  anonymous: boolean;
+  status: Contribution["status"];
+  created_at: string;
+  confirmed_at: string | null;
+};
+
+function mapContribution(row: ContributionRow): Contribution {
+  return {
+    id: row.id,
+    giftId: row.gift_id,
+    guestId: row.household_id ?? undefined,
+    name: row.guest_name,
+    email: row.email,
+    amountOriginal: Number(row.amount_original),
+    currencyOriginal: row.currency_original,
+    fxRateUsed: Number(row.fx_rate_used),
+    amountUsdNormalized: Number(row.amount_usd_normalized),
+    method: row.method,
+    dedication: row.dedication,
+    anonymous: row.anonymous,
+    status: row.status,
+    createdAt: row.created_at,
+    confirmedAt: row.confirmed_at ?? undefined,
+  };
+}
+
+type TourRow = {
+  id: string;
+  household_id?: string | null;
+  guest_name: string;
+  email: string;
+  tour_id: string;
+  tour_name: string;
+  tour_date: string;
+  quantity: number;
+  children_count: number;
+  price_per_person: number;
+  total_amount: number;
+  registration_date: string;
+  payment_status: string;
+  payment_link: string;
+};
+
+function mapTour(row: TourRow): TourReservation {
+  return {
+    id: row.id,
+    guestName: row.guest_name,
+    email: row.email,
+    tourId: row.tour_id,
+    tourName: row.tour_name,
+    tourDate: row.tour_date,
+    quantity: Number(row.quantity),
+    childrenCount: Number(row.children_count),
+    pricePerPerson: Number(row.price_per_person),
+    totalAmount: Number(row.total_amount),
+    registrationDate: row.registration_date,
+    paymentStatus: row.payment_status === "Pagado" ? "Pagado" : "Pendiente",
+    paymentLink: row.payment_link,
+  };
+}
+
+type ActivityRow = {
+  id: string;
+  household_id: string;
+  guest_name: string;
+  activity_key: string;
+  activity_name: string;
+  time: string;
+  quantity: number;
+  created_at: string;
+};
+
+function mapActivity(row: ActivityRow): ActivitySignup {
+  return {
+    id: row.id,
+    guestId: row.household_id,
+    guestName: row.guest_name,
+    activityKey: row.activity_key,
+    activityName: row.activity_name,
+    time: row.time,
+    quantity: Number(row.quantity),
+    createdAt: row.created_at,
+  };
+}
+
+type SettingsRow = {
+  clp_name: string;
+  clp_rut: string;
+  clp_bank: string;
+  clp_account_type: string;
+  clp_account_number: string;
+  clp_email: string;
+  interac_name: string;
+  interac_email: string;
+  interac_autodeposit: boolean;
+  zelle_name: string;
+  zelle_contact: string;
+  wise_email: string;
+  wise_qr: string;
+  usd_to_clp: number;
+  usd_to_cad: number;
+  usd_to_eur?: number;
+};
+
+function filled(value: string | null | undefined, fallback: string) {
+  const text = (value ?? "").trim();
+  if (!text || text.includes("{{")) return fallback;
+  return text;
+}
+
+function mapSettings(row: SettingsRow): PaymentSettings {
+  return {
+    clpName: filled(row.clp_name, defaultSettings.clpName),
+    clpRut: filled(row.clp_rut, defaultSettings.clpRut),
+    clpBank: filled(row.clp_bank, defaultSettings.clpBank),
+    clpAccountType: filled(row.clp_account_type, defaultSettings.clpAccountType),
+    clpAccountNumber: filled(row.clp_account_number, defaultSettings.clpAccountNumber),
+    clpEmail: filled(row.clp_email, defaultSettings.clpEmail),
+    interacName: row.interac_name,
+    interacEmail: row.interac_email,
+    interacAutodeposit: row.interac_autodeposit,
+    zelleName: row.zelle_name,
+    zelleContact: row.zelle_contact,
+    wiseEmail: row.wise_email,
+    wiseQr: row.wise_qr,
+    usdToClp: Number(row.usd_to_clp),
+    usdToCad: Number(row.usd_to_cad),
+    usdToEur: Number(row.usd_to_eur) > 0 ? Number(row.usd_to_eur) : defaultSettings.usdToEur,
+  };
+}
+
+function settingsPayload(settings: PaymentSettings): SettingsRow {
+  return {
+    clp_name: settings.clpName,
+    clp_rut: settings.clpRut,
+    clp_bank: settings.clpBank,
+    clp_account_type: settings.clpAccountType,
+    clp_account_number: settings.clpAccountNumber,
+    clp_email: settings.clpEmail,
+    interac_name: settings.interacName,
+    interac_email: settings.interacEmail,
+    interac_autodeposit: settings.interacAutodeposit,
+    zelle_name: settings.zelleName,
+    zelle_contact: settings.zelleContact,
+    wise_email: settings.wiseEmail,
+    wise_qr: settings.wiseQr,
+    usd_to_clp: settings.usdToClp,
+    usd_to_cad: settings.usdToCad,
+  };
+}
+
+export async function fetchMyMembers() {
+  const id = await householdId();
+  if (!id) return [];
+  const { data, error } = await supabase
+    .from("members")
+    .select("full_name, age_group, is_primary")
+    .eq("household_id", id);
+  fail(error);
+  return ((data ?? []) as { full_name: string; age_group: string | null; is_primary: boolean | null }[])
+    .map((member) => ({
+      fullName: member.full_name,
+      ageGroup: ageGroupOf(member.age_group),
+      isPrimary: Boolean(member.is_primary),
+    }))
+    .sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary) || a.fullName.localeCompare(b.fullName, "es"));
+}
+
+export async function fetchRsvp(): Promise<RsvpRecord | null> {
+  const id = await householdId();
+  if (!id) return null;
+  const { data, error } = await supabase.from("rsvps").select("*").eq("household_id", id).maybeSingle();
+  fail(error);
+  return data ? mapRsvp(data as RsvpRow) : null;
+}
+
+export async function submitRsvp(record: Omit<RsvpRecord, "id" | "createdAt">) {
+  const id = await requireHouseholdId();
+  const { data, error } = await supabase
+    .from("rsvps")
+    .upsert(
+      {
+        household_id: id,
+        legacy_code: record.guestId,
+        display_name: record.displayName,
+        attending: record.attending,
+        people: record.people,
+        children: record.children,
+        dance_song: record.danceSong,
+        message: record.message,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "household_id" },
+    )
+    .select("*")
+    .single();
+  fail(error);
+  return mapRsvp(data as RsvpRow);
+}
+
+export async function fetchGifts(): Promise<GiftPublic[]> {
+  const { data, error } = await supabase.rpc("confirmed_gift_totals");
+  fail(error);
+  const totals = (data ?? []) as { gift_id: string; confirmed_usd: number }[];
   return giftSeed.map((gift) => {
-    const confirmedUsd = contributions
-      .filter((item) => item.giftId === gift.id && item.status === "confirmed")
-      .reduce((sum, item) => sum + item.amountUsdNormalized, 0);
-    const status =
-      gift.targetUsd != null && confirmedUsd >= gift.targetUsd ? "funded" : "active";
+    const confirmedUsd = totals
+      .filter((item) => item.gift_id === gift.id)
+      .reduce((sum, item) => sum + Number(item.confirmed_usd), 0);
+    const status = gift.targetUsd != null && confirmedUsd >= gift.targetUsd ? "funded" : "active";
     return { ...gift, confirmedUsd, status };
   });
 }
 
-export async function fetchGuest(code: string): Promise<Guest | null> {
-  const normalized = code.trim();
-  if (api) {
-    try {
-      const url = new URL(api);
-      url.searchParams.set("action", "guest");
-      url.searchParams.set("code", normalized);
-      const response = await fetch(url.toString());
-      const json = (await response.json()) as { guest: Guest | null };
-      return json.guest;
-    } catch {
-      /* fall back */
-    }
-  }
-  return guests.find((guest) => guest.id === normalized) ?? null;
-}
-
-export function findLocalGuest(code: string) {
-  return guests.find((guest) => guest.id === code.trim()) ?? null;
-}
-
-function normalize(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
-}
-
-/** Fallback lookup for guests who lost their personal link: matches code or name. */
-export function searchGuests(query: string, limit = 6): Guest[] {
-  const term = normalize(query);
-  if (term.length < 2) return [];
-  const exact = guests.filter((guest) => guest.id === term);
-  if (exact.length) return exact;
-  return guests
-    .filter(
-      (guest) =>
-        guest.id.includes(term) ||
-        normalize(guest.displayName).includes(term) ||
-        normalize(guest.fullName).includes(term),
-    )
-    .slice(0, limit);
-}
-
-export function allGuests(): Guest[] {
-  return guests;
-}
-
-export async function fetchGifts(): Promise<GiftPublic[]> {
-  if (api) {
-    try {
-      return (await remote<{ gifts: GiftPublic[] }>("gifts")).gifts;
-    } catch {
-      /* fall back */
-    }
-  }
-  return publicGifts(read<Contribution[]>(KEYS.contrib, []));
-}
-
 export async function fetchSettings(): Promise<PaymentSettings> {
-  if (api) {
-    try {
-      return (await remote<{ settings: PaymentSettings }>("settings")).settings;
-    } catch {
-      /* fall back */
-    }
-  }
-  return { ...defaultSettings, ...read<Partial<PaymentSettings>>(KEYS.settings, {}) };
-}
-
-export async function submitRsvp(record: Omit<RsvpRecord, "id" | "createdAt">) {
-  const full: RsvpRecord = { ...record, id: uid(), createdAt: new Date().toISOString() };
-  if (api) {
-    await remote("rsvp", { record: full });
-    return full;
-  }
-  const all = read<RsvpRecord[]>(KEYS.rsvp, []).filter((item) => item.guestId !== record.guestId);
-  all.unshift(full);
-  write(KEYS.rsvp, all);
-  return full;
+  const { data, error } = await supabase.from("payment_settings").select("*").eq("id", 1).maybeSingle();
+  fail(error);
+  return data ? mapSettings(data as SettingsRow) : { ...defaultSettings };
 }
 
 export async function submitContribution(
@@ -166,23 +353,30 @@ export async function submitContribution(
       ? settings.usdToClp
       : input.currencyOriginal === "CAD"
         ? settings.usdToCad
-        : 1;
-  const full: Contribution = {
-    ...input,
-    id: uid(),
-    createdAt: new Date().toISOString(),
-    status: "pending",
-    amountUsdNormalized,
-    fxRateUsed,
-  };
-  if (api) {
-    await remote("contribute", { record: full });
-    return full;
-  }
-  const all = read<Contribution[]>(KEYS.contrib, []);
-  all.unshift(full);
-  write(KEYS.contrib, all);
-  return full;
+        : input.currencyOriginal === "EUR"
+          ? settings.usdToEur
+          : 1;
+  const household = await householdId();
+  const { data, error } = await supabase
+    .from("contributions")
+    .insert({
+      household_id: household,
+      gift_id: input.giftId,
+      guest_name: input.name,
+      email: input.email,
+      amount_original: input.amountOriginal,
+      currency_original: input.currencyOriginal,
+      fx_rate_used: fxRateUsed,
+      amount_usd_normalized: amountUsdNormalized,
+      method: input.method,
+      dedication: input.dedication,
+      anonymous: input.anonymous,
+      status: "pending",
+    })
+    .select("*")
+    .single();
+  fail(error);
+  return mapContribution(data as ContributionRow);
 }
 
 function withHosts(messages: ClubMessage[]) {
@@ -192,163 +386,435 @@ function withHosts(messages: ClubMessage[]) {
   return [...clubHosts, ...rest];
 }
 
+type ClubRow = {
+  id: string;
+  legacy_code: string;
+  display_name: string;
+  email: string | null;
+  message: string;
+  created_at: string;
+};
+
 export async function fetchClub(): Promise<ClubMessage[]> {
-  if (api) {
-    try {
-      return withHosts((await remote<{ messages: ClubMessage[] }>("club")).messages);
-    } catch {
-      /* fall back */
-    }
-  }
-  const rsvps = read<RsvpRecord[]>(KEYS.rsvp, []).filter((item) => item.attending);
-  const notes = read<ClubMessage[]>(KEYS.club, []);
-  const fromRsvp: ClubMessage[] = rsvps.map((item) => ({
-    id: `rsvp-${item.id}`,
-    guestId: item.guestId,
-    displayName: item.displayName,
-    email: guests.find((guest) => guest.id === item.guestId)?.email,
-    message: item.message,
-    createdAt: item.createdAt,
+  const { data, error } = await supabase.from("club_messages").select("*").order("created_at", { ascending: false });
+  fail(error);
+  const notes: ClubMessage[] = ((data ?? []) as ClubRow[]).map((row) => ({
+    id: row.id,
+    guestId: row.legacy_code,
+    displayName: row.display_name,
+    email: row.email ?? undefined,
+    message: row.message,
+    createdAt: row.created_at,
   }));
-  const rest = [...notes, ...fromRsvp].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  return withHosts(rest);
+  return withHosts(notes);
 }
 
 export async function submitClub(message: Omit<ClubMessage, "id" | "createdAt">) {
-  const full: ClubMessage = { ...message, id: uid(), createdAt: new Date().toISOString() };
-  if (api) {
-    await remote("clubPost", { record: full });
-    return full;
-  }
-  const all = read<ClubMessage[]>(KEYS.club, []);
-  all.unshift(full);
-  write(KEYS.club, all);
-  return full;
+  const household = await householdId();
+  const { data, error } = await supabase
+    .from("club_messages")
+    .insert({
+      household_id: household,
+      legacy_code: message.guestId,
+      display_name: message.displayName,
+      email: message.email ?? null,
+      message: message.message,
+    })
+    .select("*")
+    .single();
+  fail(error);
+  const row = data as ClubRow;
+  return {
+    id: row.id,
+    guestId: row.legacy_code,
+    displayName: row.display_name,
+    email: row.email ?? undefined,
+    message: row.message,
+    createdAt: row.created_at,
+  } satisfies ClubMessage;
 }
 
-export function listActivitySignups(guestId: string): ActivitySignup[] {
-  if (!guestId) return [];
-  return read<ActivitySignup[]>(KEYS.activities, []).filter((item) => item.guestId === guestId);
+export async function listActivitySignups(): Promise<ActivitySignup[]> {
+  const id = await householdId();
+  if (!id) return [];
+  const { data, error } = await supabase
+    .from("activity_signups")
+    .select("*")
+    .eq("household_id", id)
+    .order("created_at", { ascending: false });
+  fail(error);
+  return ((data ?? []) as ActivityRow[]).map(mapActivity);
 }
 
-/** Browser copy of an activity signup, same fallback tours use when Sheets is not connected. */
 export async function submitActivitySignup(
   input: Omit<ActivitySignup, "id" | "createdAt">,
 ): Promise<ActivitySignup> {
-  const full: ActivitySignup = {
-    ...input,
-    quantity: Math.max(1, Math.floor(input.quantity) || 1),
-    id: uid(),
-    createdAt: new Date().toISOString(),
-  };
-  const all = read<ActivitySignup[]>(KEYS.activities, []).filter(
-    (item) => !(item.guestId === full.guestId && item.activityKey === full.activityKey),
-  );
-  all.unshift(full);
-  write(KEYS.activities, all);
-  return full;
+  const id = await requireHouseholdId();
+  const quantity = Math.max(1, Math.floor(input.quantity) || 1);
+  const { data, error } = await supabase
+    .from("activity_signups")
+    .upsert(
+      {
+        household_id: id,
+        guest_name: input.guestName,
+        activity_key: input.activityKey,
+        activity_name: input.activityName,
+        time: input.time,
+        quantity,
+      },
+      { onConflict: "household_id,activity_key" },
+    )
+    .select("*")
+    .single();
+  fail(error);
+  return mapActivity(data as ActivityRow);
 }
 
 export async function submitTourReservation(
   input: Omit<TourReservation, "id" | "registrationDate" | "paymentStatus">,
 ) {
-  const full: TourReservation = {
-    ...input,
-    id: uid(),
-    registrationDate: new Date().toISOString(),
-    paymentStatus: "Pendiente",
-  };
-  if (api) {
-    await remote("tourReserve", { record: full });
-    return full;
-  }
-  const all = read<TourReservation[]>(KEYS.tours, []);
-  all.unshift(full);
-  write(KEYS.tours, all);
-  return full;
+  const household = await householdId();
+  const { data, error } = await supabase
+    .from("tour_reservations")
+    .insert({
+      household_id: household,
+      guest_name: input.guestName,
+      email: input.email,
+      tour_id: input.tourId,
+      tour_name: input.tourName,
+      tour_date: input.tourDate,
+      quantity: input.quantity,
+      children_count: input.childrenCount,
+      price_per_person: input.pricePerPerson,
+      total_amount: input.totalAmount,
+      payment_link: input.paymentLink,
+      payment_status: "Pendiente",
+    })
+    .select("*")
+    .single();
+  fail(error);
+  return mapTour(data as TourRow);
 }
 
-function asTourReservation(row: Record<string, unknown>): TourReservation {
-  const status = String(row.paymentStatus ?? row.payment_status ?? "");
+export type AdminRsvp = RsvpRecord & { householdId: string };
+
+export async function adminListRsvps(): Promise<AdminRsvp[]> {
+  const { data, error } = await supabase.from("rsvps").select("*").order("updated_at", { ascending: false });
+  fail(error);
+  return ((data ?? []) as (RsvpRow & { household_id: string })[]).map((row) => ({
+    ...mapRsvp(row),
+    householdId: row.household_id,
+  }));
+}
+
+export type AdminTourReservation = TourReservation & { householdId: string | null };
+
+export async function adminList() {
+  const { data, error } = await supabase
+    .from("contributions")
+    .select("*")
+    .order("created_at", { ascending: false });
+  fail(error);
+  return { contributions: ((data ?? []) as ContributionRow[]).map(mapContribution) };
+}
+
+export async function adminUpdateStatus(id: string, status: Contribution["status"]) {
+  const { error } = await supabase
+    .from("contributions")
+    .update({
+      status,
+      confirmed_at: status === "confirmed" ? new Date().toISOString() : null,
+    })
+    .eq("id", id);
+  fail(error);
+}
+
+export async function adminTourList() {
+  const { data, error } = await supabase
+    .from("tour_reservations")
+    .select("*")
+    .order("registration_date", { ascending: false });
+  fail(error);
   return {
-    id: String(row.id ?? ""),
-    guestName: String(row.guestName ?? row.guest_name ?? ""),
-    email: String(row.email ?? ""),
-    tourId: String(row.tourId ?? row.tour_id ?? ""),
-    tourName: String(row.tourName ?? row.tour_name ?? ""),
-    tourDate: String(row.tourDate ?? row.tour_date ?? ""),
-    quantity: Number(row.quantity || 0),
-    childrenCount: Number(row.childrenCount ?? row.children_count ?? 0),
-    pricePerPerson: Number(row.pricePerPerson ?? row.price_per_person ?? 0),
-    totalAmount: Number(row.totalAmount ?? row.total_amount ?? 0),
-    registrationDate: String(row.registrationDate ?? row.registration_date ?? ""),
-    paymentStatus: status === "Pagado" ? "Pagado" : "Pendiente",
-    paymentLink: String(row.paymentLink ?? row.payment_link ?? ""),
+    reservations: ((data ?? []) as TourRow[]).map((row) => ({
+      ...mapTour(row),
+      householdId: row.household_id ?? null,
+    })),
   };
 }
 
-export async function adminTourList(token: string) {
-  if (api) {
-    const data = await remote<{ reservations: Record<string, unknown>[] }>("adminTours", { token });
-    return { reservations: (data.reservations || []).map(asTourReservation) };
-  }
-  if (token !== (import.meta.env.VITE_ADMIN_TOKEN || "change-me")) {
-    throw new Error("Unauthorized");
-  }
-  return { reservations: read<Record<string, unknown>[]>(KEYS.tours, []).map((row) => asTourReservation(row)) };
+export async function adminTourStatus(id: string, paymentStatus: TourReservation["paymentStatus"]) {
+  const { error } = await supabase.from("tour_reservations").update({ payment_status: paymentStatus }).eq("id", id);
+  fail(error);
 }
 
-export async function adminTourStatus(token: string, id: string, paymentStatus: TourReservation["paymentStatus"]) {
-  if (api) {
-    return remote("adminTourStatus", { token, id, paymentStatus });
-  }
-  if (token !== (import.meta.env.VITE_ADMIN_TOKEN || "change-me")) {
-    throw new Error("Unauthorized");
-  }
-  const all = read<TourReservation[]>(KEYS.tours, []).map((item) =>
-    item.id === id ? { ...item, paymentStatus } : item,
-  );
-  write(KEYS.tours, all);
+export async function adminSaveSettings(settings: PaymentSettings) {
+  const { error } = await supabase.from("payment_settings").update(settingsPayload(settings)).eq("id", 1);
+  fail(error);
   return { ok: true };
 }
 
-export async function adminList(token: string) {
-  if (api) {
-    return remote<{ contributions: Contribution[] }>("adminList", { token });
-  }
-  if (token !== (import.meta.env.VITE_ADMIN_TOKEN || "change-me")) {
-    throw new Error("Unauthorized");
-  }
-  return { contributions: read<Contribution[]>(KEYS.contrib, []) };
+type HouseholdRow = {
+  id: string;
+  legacy_code: string;
+  display_name: string;
+  guest_limit: number;
+  has_children: boolean;
+  children_limit: number;
+  side: GuestSide | null;
+  kind: GuestKind | null;
+  phone: string | null;
+  origin_city: string | null;
+  lodging: string | null;
+  extend_trip: string | null;
+  std_attending: string | null;
+  std_sent_at: string | null;
+  companion_count: number | null;
+  teen_count: number | null;
+  child_count: number | null;
+  invite_sent_at: string | null;
+  members: { id: string; full_name: string; email: string | null; age_group: string | null; is_primary: boolean | null }[] | null;
+};
+
+function asAge(value: string | null | undefined): AgeGroup {
+  if (value === "baby" || value === "kid" || value === "teen" || value === "adult") return value;
+  return "adult";
 }
 
-export async function adminUpdateStatus(token: string, id: string, status: Contribution["status"]) {
-  if (api) {
-    return remote("adminStatus", { token, id, status });
-  }
-  if (token !== (import.meta.env.VITE_ADMIN_TOKEN || "change-me")) {
-    throw new Error("Unauthorized");
-  }
-  const all = read<Contribution[]>(KEYS.contrib, []).map((item) =>
-    item.id === id
-      ? {
-          ...item,
-          status,
-          confirmedAt: status === "confirmed" ? new Date().toISOString() : item.confirmedAt,
-        }
-      : item,
-  );
-  write(KEYS.contrib, all);
-  return { ok: true };
+export async function adminListHouseholds(): Promise<AdminHousehold[]> {
+  const { data, error } = await supabase
+    .from("households")
+    .select(
+      "id, legacy_code, display_name, guest_limit, has_children, children_limit, side, kind, phone, origin_city, lodging, extend_trip, std_attending, std_sent_at, companion_count, teen_count, child_count, invite_sent_at, members(id, full_name, email, age_group, is_primary)",
+    )
+    .order("legacy_code");
+  fail(error);
+  return ((data ?? []) as HouseholdRow[]).map((row) => ({
+    id: row.id,
+    legacyCode: row.legacy_code,
+    displayName: row.display_name,
+    guestLimit: row.guest_limit,
+    hasChildren: row.has_children,
+    childrenLimit: row.children_limit,
+    side: row.side,
+    kind: row.kind,
+    phone: row.phone ?? "",
+    originCity: row.origin_city ?? "",
+    lodging: row.lodging ?? "",
+    extendTrip: row.extend_trip ?? "",
+    stdAttending: row.std_attending ?? "",
+    stdSentAt: row.std_sent_at ?? "",
+    companionCount: row.companion_count,
+    teenCount: row.teen_count,
+    childCount: row.child_count,
+    inviteSentAt: row.invite_sent_at ?? "",
+    members: (row.members ?? [])
+      .map((member) => ({
+        id: member.id,
+        fullName: member.full_name,
+        email: member.email ?? "",
+        ageGroup: asAge(member.age_group),
+        isPrimary: Boolean(member.is_primary),
+      }))
+      .sort(compareMembers),
+  }));
 }
 
-export async function adminSaveSettings(token: string, settings: PaymentSettings) {
-  if (api) {
-    return remote("adminSettings", { token, settings });
-  }
-  if (token !== (import.meta.env.VITE_ADMIN_TOKEN || "change-me")) {
-    throw new Error("Unauthorized");
-  }
-  write(KEYS.settings, settings);
-  return { ok: true };
+export async function adminUpdateHousehold(household: AdminHousehold) {
+  const { error } = await supabase.rpc("admin_update_household", {
+    p_id: household.id,
+    p_display_name: household.displayName,
+    p_guest_limit: household.guestLimit,
+    p_has_children: household.hasChildren,
+    p_children_limit: household.childrenLimit,
+  });
+  fail(error);
+}
+
+export async function adminUpdateHouseholdTags(id: string, side: GuestSide | null, kind: GuestKind | null) {
+  const { error } = await supabase.rpc("admin_update_household_tags", {
+    p_id: id,
+    p_side: side ?? "",
+    p_kind: kind ?? "",
+  });
+  fail(error);
+}
+
+export async function adminSetPrimary(memberId: string, primary: boolean) {
+  const { error } = await supabase.rpc("admin_set_primary_member", {
+    p_id: memberId,
+    p_primary: primary,
+  });
+  fail(error);
+}
+
+export async function adminSetLodging(householdId: string, lodging: string) {
+  const { error } = await supabase.rpc("admin_set_lodging", {
+    p_id: householdId,
+    p_lodging: lodging,
+  });
+  fail(error);
+}
+
+export async function adminSetInviteSent(householdId: string, sent: boolean) {
+  const { error } = await supabase.rpc("admin_set_invite_sent", {
+    p_id: householdId,
+    p_sent: sent,
+  });
+  fail(error);
+}
+
+export async function adminUpdateMember(member: AdminMember) {
+  const { error } = await supabase.rpc("admin_update_member", {
+    p_id: member.id,
+    p_full_name: member.fullName,
+    p_email: member.email,
+    p_age_group: member.ageGroup,
+  });
+  fail(error);
+}
+
+export async function adminAddMember(householdId: string, fullName: string, email: string, ageGroup: AgeGroup) {
+  const { data, error } = await supabase.rpc("admin_add_member", {
+    p_household_id: householdId,
+    p_full_name: fullName,
+    p_email: email,
+    p_age_group: ageGroup,
+  });
+  fail(error);
+  return String(data);
+}
+
+export async function adminRemoveMember(memberId: string) {
+  const { error } = await supabase.rpc("admin_remove_member", { p_id: memberId });
+  fail(error);
+}
+
+export async function adminCreateHousehold(input: {
+  displayName: string;
+  fullName: string;
+  email: string;
+  guestLimit: number;
+  side: GuestSide | null;
+  kind: GuestKind | null;
+}) {
+  const { data, error } = await supabase.rpc("admin_create_household", {
+    p_display_name: input.displayName,
+    p_full_name: input.fullName,
+    p_email: input.email,
+    p_guest_limit: input.guestLimit,
+    p_side: input.side ?? "",
+    p_kind: input.kind ?? "",
+  });
+  fail(error);
+  return data as string;
+}
+
+export async function adminDeleteHousehold(householdId: string) {
+  const { error } = await supabase.rpc("admin_delete_household", { p_id: householdId });
+  fail(error);
+}
+
+export async function adminMoveMember(memberId: string, householdId: string) {
+  const { data, error } = await supabase.rpc("admin_move_member", {
+    p_member_id: memberId,
+    p_household_id: householdId,
+  });
+  fail(error);
+  return data as string;
+}
+
+export async function adminSplitMember(memberId: string) {
+  const { data, error } = await supabase.rpc("admin_split_member", { p_member_id: memberId });
+  fail(error);
+  return data as string;
+}
+
+export type PassportMember = {
+  id: string;
+  fullName: string;
+  email: string;
+  ageGroup: AgeGroup;
+  isPrimary: boolean;
+  signedIn: boolean;
+};
+
+export type HouseholdPassport = {
+  displayName: string;
+  lodging: string;
+  extendTrip: string;
+  plans: GuestPlans;
+  members: PassportMember[];
+  rsvp: RsvpRecord | null;
+  contributions: Contribution[];
+  tours: TourReservation[];
+};
+
+export async function fetchPassport(): Promise<HouseholdPassport | null> {
+  const id = await householdId();
+  if (!id) return null;
+  const [household, members, rsvp, contributions, tours] = await Promise.all([
+    supabase
+      .from("households")
+      .select("display_name, lodging, extend_trip, guest_plans")
+      .eq("id", id)
+      .maybeSingle(),
+    supabase.from("members").select("id, full_name, email, age_group, is_primary, auth_user_id").eq("household_id", id),
+    supabase.from("rsvps").select("*").eq("household_id", id).maybeSingle(),
+    supabase.from("contributions").select("*").eq("household_id", id).order("created_at", { ascending: false }),
+    supabase.from("tour_reservations").select("*").eq("household_id", id).order("registration_date", { ascending: false }),
+  ]);
+  fail(household.error);
+  fail(members.error);
+  fail(rsvp.error);
+  fail(contributions.error);
+  fail(tours.error);
+  if (!household.data) return null;
+  const house = household.data as {
+    display_name: string;
+    lodging: string | null;
+    extend_trip: string | null;
+    guest_plans: unknown;
+  };
+  return {
+    displayName: house.display_name,
+    lodging: house.lodging ?? "",
+    extendTrip: house.extend_trip ?? "",
+    plans: parsePlans(house.guest_plans),
+    members: ((members.data ?? []) as {
+      id: string;
+      full_name: string;
+      email: string | null;
+      age_group: string | null;
+      is_primary: boolean | null;
+      auth_user_id: string | null;
+    }[])
+      .map((member) => ({
+        id: member.id,
+        fullName: member.full_name,
+        email: member.email ?? "",
+        ageGroup: ageGroupOf(member.age_group),
+        isPrimary: Boolean(member.is_primary),
+        signedIn: Boolean(member.auth_user_id),
+      }))
+      .sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary) || a.fullName.localeCompare(b.fullName, "es")),
+    rsvp: rsvp.data ? mapRsvp(rsvp.data as RsvpRow) : null,
+    contributions: ((contributions.data ?? []) as ContributionRow[]).map(mapContribution),
+    tours: ((tours.data ?? []) as TourRow[]).map(mapTour),
+  };
+}
+
+export async function saveMyPlans(plans: GuestPlans) {
+  const { data, error } = await supabase.rpc("save_my_plans", { p_plans: plans });
+  fail(error);
+  return parsePlans(data);
+}
+
+export async function saveMyMemberEmail(memberId: string, email: string) {
+  const { data, error } = await supabase.rpc("save_my_member_email", {
+    p_member_id: memberId,
+    p_email: email,
+  });
+  fail(error);
+  return (data as string | null) ?? "";
 }

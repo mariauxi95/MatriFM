@@ -28,10 +28,21 @@ export function DayTimeline({
   const { lang, t } = useLang();
   const { guest } = useGuest();
   const [open, setOpen] = useState<ItineraryEvent | null>(null);
-  const [signups, setSignups] = useState<ActivitySignup[]>(() => listActivitySignups(guest?.id ?? ""));
+  const [signups, setSignups] = useState<ActivitySignup[]>([]);
 
   useEffect(() => {
-    setSignups(listActivitySignups(guest?.id ?? ""));
+    if (!guest?.id) return;
+    let alive = true;
+    listActivitySignups()
+      .then((rows) => {
+        if (alive) setSignups(rows);
+      })
+      .catch(() => {
+        if (alive) setSignups([]);
+      });
+    return () => {
+      alive = false;
+    };
   }, [guest?.id]);
 
   const signedKeys = useMemo(() => new Set(signups.map((item) => item.activityKey)), [signups]);

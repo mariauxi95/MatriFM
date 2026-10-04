@@ -2,7 +2,7 @@ import { useState } from "react";
 import { bookingSearchUrl, hotels, type Hotel, type StayFact, type StayFactIcon } from "../../data/hotels";
 import { useLang } from "../../context/Language";
 
-const BOHEMIA_WHATSAPP = "https://wa.me/56933572571";
+export const BOHEMIA_WHATSAPP = "https://wa.me/56933572571";
 
 export function StaySection() {
   const { lang, t } = useLang();

@@ -1,85 +1,101 @@
 import { useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { LangToggle } from "../components/LangToggle";
+import { useGuest } from "../context/GuestSession";
 import { useLang } from "../context/Language";
-import { fetchGuest, searchGuests } from "../lib/sheets";
-import type { Guest } from "../types";
+import { authFailure, sendMagicLink, verifyEmailCode } from "../lib/auth";
 
 export function Gate() {
   const { t } = useLang();
-  const navigate = useNavigate();
-  const [query, setQuery] = useState("");
-  const [matches, setMatches] = useState<Guest[] | null>(null);
+  const { guest, ready, isAdmin } = useGuest();
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
+  const [sending, setSending] = useState(false);
+
+  if (!ready) return <main className="gate" />;
+  if (isAdmin && !guest) return <Navigate to="/admin" replace />;
+  if (guest) return <Navigate to="/invite" replace />;
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
+    if (sending) return;
     setError("");
-    setMatches(null);
-
-    const term = query.trim();
-    if (!term) return;
-
-    if (/^\d+$/.test(term)) {
-      const guest = await fetchGuest(term);
-      if (guest) {
-        navigate(`/invite/${guest.id}`);
-        return;
-      }
+    setSending(true);
+    try {
+      await sendMagicLink(email);
+      setSent(true);
+    } catch (cause) {
+      const failure = authFailure(cause);
+      setError(failure === "not_invited" ? t("gateNoMatch") : t("gateSendError"));
+    } finally {
+      setSending(false);
     }
+  }
 
-    const found = searchGuests(term);
-    if (found.length === 1) {
-      navigate(`/invite/${found[0].id}`);
-      return;
+  async function onCode(event: FormEvent) {
+    event.preventDefault();
+    if (sending) return;
+    setError("");
+    setSending(true);
+    try {
+      await verifyEmailCode(email, code);
+    } catch (cause) {
+      const failure = authFailure(cause);
+      setError(failure === "rate" ? t("gateSendError") : t("gateCodeError"));
+      setSending(false);
     }
-    if (found.length === 0) {
-      setError(t("gateNoMatch"));
-      return;
-    }
-    setMatches(found);
   }
 
   return (
     <main className="gate">
-      <form className="gate-card" onSubmit={onSubmit}>
+      <form className="gate-card" onSubmit={sent ? onCode : onSubmit}>
         <LangToggle />
         <p className="eyebrow">{t("gateBrand")}</p>
         <h1 className="page-title">{t("gateLostTitle")}</h1>
-        <p className="gate-lead">{t("gateLostLead")}</p>
+        <p className="gate-lead">{sent ? t("gateSent") : t("gateLostLead")}</p>
         <label className="field">
           <span>{t("gateSearchLabel")}</span>
           <input
-            value={query}
+            type="email"
+            value={email}
             onChange={(e) => {
-              setQuery(e.target.value);
+              setEmail(e.target.value);
               setError("");
-              setMatches(null);
+              setSent(false);
             }}
             placeholder={t("gateSearchPlaceholder")}
-            autoComplete="name"
+            autoComplete="email"
             required
           />
         </label>
-        {error ? <p className="error">{error}</p> : null}
-        {matches?.length ? (
-          <div className="gate-matches">
-            <p className="gate-matches-title">{t("gatePickYou")}</p>
-            <ul>
-              {matches.map((guest) => (
-                <li key={guest.id}>
-                  <button type="button" onClick={() => navigate(`/invite/${guest.id}`)}>
-                    <b>{guest.fullName}</b>
-                    <small>{guest.displayName}</small>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
+        {sent ? (
+          <label className="field">
+            <span>{t("gateCodeLabel")}</span>
+            <input
+              value={code}
+              onChange={(e) => {
+                setCode(e.target.value.replace(/\s/g, ""));
+                setError("");
+              }}
+              placeholder={t("gateCodePlaceholder")}
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={8}
+              required
+            />
+          </label>
         ) : null}
-        <button className="btn" type="submit">
-          {t("gateSearchCta")}
+        {error ? <p className="error">{error}</p> : null}
+        <button className="btn" type="submit" disabled={sending}>
+          {sent ? t("gateCodeCta") : t("gateSearchCta")}
         </button>
+        {sent ? null : (
+          <button className="btn ghost" type="button" onClick={() => setSent(true)}>
+            {t("gateHaveCode")}
+          </button>
+        )}
         <p className="gate-help">{t("gateHelp")}</p>
       </form>
     </main>

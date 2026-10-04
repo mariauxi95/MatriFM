@@ -9,7 +9,7 @@ const FLAG = "fm-welcome-film";
 let presentWelcome: (() => void) | null = null;
 
 function isCoverPath(pathname: string) {
-  return /\/invite\/[^/]+\/?$/.test(pathname);
+  return /\/invite\/?$/.test(pathname);
 }
 
 /** Start the film on the cover click. The window stays hidden until the invitation. */

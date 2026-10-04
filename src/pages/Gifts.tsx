@@ -1,15 +1,19 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
+import flagCl from "flag-icons/flags/4x3/cl.svg";
+import flagCa from "flag-icons/flags/4x3/ca.svg";
+import flagUs from "flag-icons/flags/4x3/us.svg";
+import flagEu from "flag-icons/flags/4x3/eu.svg";
 import { useGuest } from "../context/GuestSession";
 import { useLang } from "../context/Language";
 import { gifts as giftSeed } from "../data/gifts";
 import { fetchGifts, fetchSettings, submitContribution } from "../lib/sheets";
-import { defaultSettings, formatMoney, fromUsd, methodCurrency, suggestedAmounts } from "../lib/money";
+import { defaultSettings, formatMoney, methodCurrency, suggestedAmounts } from "../lib/money";
 import type { Currency, GiftPublic, PaymentMethod, PaymentSettings } from "../types";
 
 type Step = "amount" | "method" | "pay" | "form" | "done";
 
-const methods: PaymentMethod[] = ["clp", "cad", "zelle", "wise"];
+const methods: PaymentMethod[] = ["clp", "cad", "zelle", "eur", "wise"];
 
 const giftMetaById = Object.fromEntries(
   giftSeed.map((g) => [g.id, { image: g.image, imagePosition: g.imagePosition }]),
@@ -21,9 +25,9 @@ export function Gifts() {
   const [items, setItems] = useState<GiftPublic[]>([]);
   const [settings, setSettings] = useState<PaymentSettings>(defaultSettings);
   const [gift, setGift] = useState<GiftPublic | null>(null);
-  const [step, setStep] = useState<Step>("amount");
-  const [method, setMethod] = useState<PaymentMethod>("zelle");
-  const [amount, setAmount] = useState(50);
+  const [step, setStep] = useState<Step>("method");
+  const [method, setMethod] = useState<PaymentMethod | null>(null);
+  const [amount, setAmount] = useState<number | null>(null);
   const [custom, setCustom] = useState("");
   const [copied, setCopied] = useState("");
   const name = guest?.displayName ?? "";
@@ -36,18 +40,23 @@ export function Gifts() {
     fetchSettings().then(setSettings);
   }, []);
 
-  const currency = methodCurrency(method);
-  const suggestions = settings ? suggestedAmounts(currency, settings) : [];
+  const currency: Currency = method ? methodCurrency(method) : "USD";
+  const suggestions = suggestedAmounts(currency, settings);
+  const localAmount = custom ? Number(custom) : (amount ?? 0);
 
-  const localAmount = useMemo(() => {
-    if (custom) return Number(custom);
-    if (!settings) return amount;
-    return fromUsd(amount, currency, settings);
-  }, [amount, custom, currency, settings]);
+  function chooseMethod(next: PaymentMethod) {
+    if (next !== method) {
+      setAmount(null);
+      setCustom("");
+    }
+    setMethod(next);
+  }
 
   function close() {
     setGift(null);
-    setStep("amount");
+    setStep("method");
+    setMethod(null);
+    setAmount(null);
     setCustom("");
     setCopied("");
   }
@@ -59,7 +68,7 @@ export function Gifts() {
 
   async function onRegister(event: FormEvent) {
     event.preventDefault();
-    if (!gift) return;
+    if (!gift || !method) return;
     await submitContribution({
       giftId: gift.id,
       guestId: guest?.id,
@@ -184,13 +193,13 @@ export function Gifts() {
                 <ol className="gift-drawer-steps" aria-label="Progress">
                   {(
                     [
-                      ["amount", "giftStepAmount"],
                       ["method", "giftStepMethod"],
+                      ["amount", "giftStepAmount"],
                       ["pay", "giftStepPay"],
                       ["form", "giftStepForm"],
                     ] as const
                   ).map(([id, labelKey], index) => {
-                    const order = ["amount", "method", "pay", "form"] as const;
+                    const order = ["method", "amount", "pay", "form"] as const;
                     const active = order.indexOf(step as (typeof order)[number]);
                     const state = index < active ? "is-done" : index === active ? "is-active" : "";
                     return (
@@ -216,7 +225,7 @@ export function Gifts() {
                   setCustom={setCustom}
                 />
               ) : null}
-              {step === "method" ? <MethodStep method={method} setMethod={setMethod} /> : null}
+              {step === "method" ? <MethodStep method={method} setMethod={chooseMethod} /> : null}
               {step === "pay" ? (
                 <PayStep method={method} settings={settings} copied={copied} copy={copy} />
               ) : null}
@@ -249,24 +258,24 @@ export function Gifts() {
             </div>
 
             <footer className="gift-drawer-foot">
-              {step === "amount" ? (
-                <button className="btn" type="button" onClick={() => setStep("method")} disabled={!custom && !amount}>
+              {step === "method" ? (
+                <button className="btn" type="button" onClick={() => setStep("amount")} disabled={!method}>
                   {t("next")} →
                 </button>
               ) : null}
-              {step === "method" ? (
+              {step === "amount" ? (
                 <>
-                  <button className="btn ghost" type="button" onClick={() => setStep("amount")}>
+                  <button className="btn ghost" type="button" onClick={() => setStep("method")}>
                     {t("back")}
                   </button>
-                  <button className="btn" type="button" onClick={() => setStep("pay")}>
+                  <button className="btn" type="button" onClick={() => setStep("pay")} disabled={!custom && !amount}>
                     {t("next")} →
                   </button>
                 </>
               ) : null}
               {step === "pay" ? (
                 <>
-                  <button className="btn ghost" type="button" onClick={() => setStep("method")}>
+                  <button className="btn ghost" type="button" onClick={() => setStep("amount")}>
                     {t("back")}
                   </button>
                   <button className="btn" type="button" onClick={() => setStep("form")}>
@@ -314,9 +323,9 @@ function AmountStep({
   gift: GiftPublic;
   currency: Currency;
   suggestions: { usd: number; local: number; currency: Currency }[];
-  amount: number;
+  amount: number | null;
   custom: string;
-  setAmount: (n: number) => void;
+  setAmount: (n: number | null) => void;
   setCustom: (v: string) => void;
 }) {
   const { lang, t } = useLang();
@@ -332,12 +341,12 @@ function AmountStep({
       <div className="amount-grid" role="group" aria-label={t("howMuch")}>
         {suggestions.map((item) => (
           <button
-            key={item.usd}
+            key={item.local}
             type="button"
-            className={!custom && amount === item.usd ? "amount-chip is-selected" : "amount-chip"}
+            className={!custom && amount === item.local ? "amount-chip is-selected" : "amount-chip"}
             onClick={() => {
               setCustom("");
-              setAmount(item.usd);
+              setAmount(item.local);
             }}
           >
             {formatMoney(item.local, currency)}
@@ -361,70 +370,33 @@ function AmountStep({
 }
 
 function MethodFlag({ method }: { method: PaymentMethod }) {
-  if (method === "clp") {
+  if (method === "wise") {
     return (
-      <svg className="method-flag" viewBox="0 0 24 16" aria-hidden>
-        <rect width="24" height="16" fill="#fff" />
-        <rect width="8" height="8" fill="#0039a6" />
-        <rect y="8" width="24" height="8" fill="#d52b1e" />
-        <path
-          fill="#fff"
-          d="M4 2.2 4.55 3.9H6.3l-1.4 1.02.53 1.68L4 5.58l-1.43 1.02.53-1.68L1.7 3.9h1.75z"
-        />
-      </svg>
+      <span className="method-flag method-flag-emoji" aria-hidden>
+        🌐
+      </span>
     );
   }
-  if (method === "cad") {
-    return (
-      <svg className="method-flag" viewBox="0 0 24 16" aria-hidden>
-        <rect width="24" height="16" fill="#fff" />
-        <rect width="6" height="16" fill="#d52b1e" />
-        <rect x="18" width="6" height="16" fill="#d52b1e" />
-        <path
-          fill="#d52b1e"
-          d="M12 3.2 12.7 5.4h2.3l-1.85 1.35.7 2.2L12 7.7l-1.85 1.25.7-2.2L9 5.4h2.3z"
-        />
-      </svg>
-    );
-  }
-  if (method === "zelle") {
-    return (
-      <svg className="method-flag" viewBox="0 0 24 16" aria-hidden>
-        <rect width="24" height="16" fill="#bf0a30" />
-        <rect y="1.23" width="24" height="1.23" fill="#fff" />
-        <rect y="3.69" width="24" height="1.23" fill="#fff" />
-        <rect y="6.15" width="24" height="1.23" fill="#fff" />
-        <rect y="8.62" width="24" height="1.23" fill="#fff" />
-        <rect y="11.08" width="24" height="1.23" fill="#fff" />
-        <rect y="13.54" width="24" height="1.23" fill="#fff" />
-        <rect width="10" height="8.6" fill="#3c3b6e" />
-      </svg>
-    );
-  }
-  return (
-    <svg className="method-flag" viewBox="0 0 24 16" aria-hidden>
-      <rect width="24" height="16" rx="2" fill="#9fe870" />
-      <circle cx="12" cy="8" r="4.2" fill="none" stroke="#163300" strokeWidth="1.2" />
-      <path d="M8 8h8M12 3.8c1.4 1.4 1.4 6.8 0 8.4M12 3.8c-1.4 1.4-1.4 6.8 0 8.4" fill="none" stroke="#163300" strokeWidth="1.1" />
-    </svg>
-  );
+  const src = { clp: flagCl, cad: flagCa, zelle: flagUs, eur: flagEu }[method];
+  return <img className="method-flag" src={src} alt="" />;
 }
 
 function MethodStep({
   method,
   setMethod,
 }: {
-  method: PaymentMethod;
+  method: PaymentMethod | null;
   setMethod: (m: PaymentMethod) => void;
 }) {
   const { t } = useLang();
   const labels: Record<
     PaymentMethod,
-    { title: "payClp" | "payCad" | "payZelle" | "payWise"; sub: "payClpSub" | "payCadSub" | "payZelleSub" | "payWiseSub" }
+    { title: "payClp" | "payCad" | "payZelle" | "payWise" | "payEur"; sub: "payClpSub" | "payCadSub" | "payZelleSub" | "payWiseSub" | "payEurSub" }
   > = {
     clp: { title: "payClp", sub: "payClpSub" },
     cad: { title: "payCad", sub: "payCadSub" },
     zelle: { title: "payZelle", sub: "payZelleSub" },
+    eur: { title: "payEur", sub: "payEurSub" },
     wise: { title: "payWise", sub: "payWiseSub" },
   };
   return (
@@ -456,13 +428,28 @@ function PayStep({
   copied,
   copy,
 }: {
-  method: PaymentMethod;
+  method: PaymentMethod | null;
   settings: PaymentSettings;
   copied: string;
   copy: (text: string, key: string) => void;
 }) {
   const { t } = useLang();
+  if (!method) return null;
   const giftEmail = "yanezlfernando@gmail.com";
+  const labels: Record<PaymentMethod, "payClp" | "payCad" | "payZelle" | "payEur" | "payWise"> = {
+    clp: "payClp",
+    cad: "payCad",
+    zelle: "payZelle",
+    eur: "payEur",
+    wise: "payWise",
+  };
+  const euro = [
+    ["Nombre", "Fernando Javier Yanez Lucero"],
+    ["IBAN", "BE82 9671 0289 8168"],
+    ["SWIFT/BIC", "TRWIBEB1XXX"],
+    ["Banco", "Wise"],
+    ["Dirección", "Rue du Trône 100, 3rd floor, Brussels, 1050, Belgium"],
+  ];
   const rows =
     method === "clp"
       ? [
@@ -473,15 +460,16 @@ function PayStep({
           ["Cuenta", settings.clpAccountNumber],
           ["Email", settings.clpEmail],
         ]
-      : [["Email", giftEmail]];
+      : method === "eur"
+        ? euro
+        : [["Email", giftEmail]];
 
   const all = rows.map(([k, v]) => `${k}: ${v}`).join("\n");
 
   return (
     <div className="gift-pay">
       <h2>
-        <MethodFlag method={method} />{" "}
-        {t(method === "clp" ? "payClp" : method === "cad" ? "payCad" : method === "zelle" ? "payZelle" : "payWise")}
+        <MethodFlag method={method} /> {t(labels[method])}
       </h2>
       <div className="pay-copy">
         {rows.map(([key, value]) => (
@@ -500,14 +488,9 @@ function PayStep({
             </button>
           </div>
         ))}
-        {method === "cad" ? <p>{t("interacNote")}</p> : null}
         {method === "zelle" ? <p>{t("zelleNote")}</p> : null}
-        {method === "wise" && settings.wiseLink.startsWith("http") ? (
-          <a className="btn tertiary" href={settings.wiseLink} target="_blank" rel="noreferrer">
-            {t("wiseCta")} ↗
-          </a>
-        ) : null}
-        {method === "clp" ? (
+        {method === "eur" ? <p>{t("sepaNote")}</p> : null}
+        {method === "clp" || method === "eur" ? (
           <button className="btn tertiary" type="button" onClick={() => copy(all, "all")}>
             {copied === "all" ? t("copied") : t("copyAll")}
           </button>
