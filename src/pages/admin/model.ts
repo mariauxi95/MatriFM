@@ -47,7 +47,7 @@ export type ActivityColumnId = (typeof ACTIVITY_COLUMNS)[number]["id"];
 
 const FOOD: Record<FoodMain, string> = {
   meat: "Carne",
-  fish: "Pescado",
+  fish: "Salmón",
   both: "Ambos",
   none: "Sin pref.",
   kids: "Niños",
