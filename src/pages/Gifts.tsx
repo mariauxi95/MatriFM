@@ -161,7 +161,7 @@ export function Gifts() {
                       {t("received")}: {formatMoney(item.confirmedUsd, "USD")}
                     </b>
                   )}
-                  <button className="btn tertiary" type="button" onClick={() => setGift(item)}>
+                  <button className="btn" type="button" onClick={() => setGift(item)}>
                     {t("contribute")}
                   </button>
                 </div>

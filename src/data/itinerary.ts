@@ -30,6 +30,8 @@ export type ItineraryDay = {
   photo: string;
   /** CSS object-position for the day card photo */
   photoPosition?: string;
+  /** Zoom for the day card photo. The card clips the overflow. */
+  photoScale?: number;
   dressEs: string;
   dressEn: string;
   dressLink: string;
@@ -47,7 +49,9 @@ export const itinerary: ItineraryDay[] = [
     titleEs: "Last Stop Before “I Do”",
     titleEn: "Last Stop Before “I Do”",
     time: "7:00 p. m.",
-    photo: assetUrl("/images/gallery/cita.jpg?v=2"),
+    photo: assetUrl("/images/gallery/cita.jpg?v=5"),
+    photoPosition: "center 34%",
+    photoScale: 1.22,
     dressEs: "Blanco · casual playa",
     dressEn: "White · casual beach",
     dressLink: "https://www.pinterest.com/mariauxirodrguez/last-stop-before-i-do/",

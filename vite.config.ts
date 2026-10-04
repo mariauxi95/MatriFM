@@ -1,9 +1,9 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-export default defineConfig(({ mode }) => ({
-  // GitHub Pages serves under /MatriFM/; keep "/" for local `npm run dev`.
-  base: mode === "production" ? "/MatriFM/" : "/",
+export default defineConfig({
+  // matrimarifer.com is served at the domain root.
+  base: "/",
   plugins: [react()],
   server: {
     watch: {
@@ -12,4 +12,4 @@ export default defineConfig(({ mode }) => ({
       ignored: ["**/public/videos/**"],
     },
   },
-}));
+});

@@ -3868,8 +3868,39 @@ body[data-rsvp-done] #nav-my-rsvp {
   margin: 0;
 }
 
+.club-wa-row {
+  display: flex;
+  align-items: center;
+  gap: 1.75rem;
+  margin-top: 1.35rem;
+}
+
 .club-wa {
+  flex: 1 1 28rem;
   max-width: 560px;
+  border: 4px solid var(--forest);
+}
+
+.club-wa-art {
+  flex: 0 1 20rem;
+  width: min(20rem, 36%);
+  height: auto;
+}
+
+@media (max-width: 859px) {
+  .club-wa-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .club-wa {
+    width: 100%;
+    max-width: none;
+  }
+
+  .club-wa-art {
+    width: min(18rem, 72%);
+  }
 }
 
 .club-wa-kicker {
