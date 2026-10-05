@@ -28,7 +28,10 @@ function explain(error: unknown) {
   if (message.includes("last_member")) return "Deja al menos una persona en la invitación, o elimínala por completo.";
   if (message.includes("has_payments")) return "Esta invitación tiene pagos. Resuélvelos antes de eliminarla o de mover a la última persona.";
   if (message.includes("same_household")) return "Esa persona ya está en esa invitación.";
-  if (message.includes("duplicate") || message.includes("unique")) return "Ese email ya está en otra invitación.";
+  if (message.includes("email_taken") || message.includes("duplicate") || message.includes("unique")) {
+    return "Ese email ya está en otra invitación.";
+  }
+  if (message.includes("email_required")) return "Esa persona ya entró. Puedes cambiar el correo, pero no dejarlo vacío.";
   if (message.includes("bad_email")) return "Escribe un email válido.";
   if (message.includes("name_required")) return "El nombre no puede quedar vacío.";
   if (message.includes("bad_side") || message.includes("bad_kind")) return "Elige Maru o Fer, y Familia o Amigos.";
@@ -192,14 +195,21 @@ export function AdminPanel({
     for (const member of kept) {
       if (member.pending) {
         if (!member.fullName.trim()) continue;
-        const id = await adminAddMember(draft.id, member.fullName, member.email, member.ageGroup);
+        const id = await adminAddMember(draft.id, member.fullName, member.email.trim(), member.ageGroup);
         if (member.isPrimary) createdPrimary = id;
         continue;
       }
       const previous = original.get(member.id);
       if (!previous) continue;
-      if (previous.fullName === member.fullName && previous.email === member.email && previous.ageGroup === member.ageGroup) continue;
-      await adminUpdateMember(member);
+      const email = member.email.trim();
+      if (
+        previous.fullName === member.fullName &&
+        previous.email.trim().toLowerCase() === email.toLowerCase() &&
+        previous.ageGroup === member.ageGroup
+      ) {
+        continue;
+      }
+      await adminUpdateMember({ ...member, email });
     }
 
     const starred = kept.find((member) => member.isPrimary && !member.pending);
@@ -315,7 +325,10 @@ export function AdminPanel({
             <label className="admin-field">
               <span>Email</span>
               <input
-                type="email"
+                type="text"
+                inputMode="email"
+                autoComplete="off"
+                spellCheck={false}
                 value={member.email}
                 placeholder="opcional"
                 onChange={(event) => patchMember(member.id, { email: event.target.value })}
@@ -498,7 +511,7 @@ export function CreateHousehold({
     setBusy(true);
     setError("");
     try {
-      const id = await adminCreateHousehold({ displayName, fullName, email, guestLimit, side, kind });
+      const id = await adminCreateHousehold({ displayName, fullName, email: email.trim(), guestLimit, side, kind });
       await onCreated(id);
     } catch (cause) {
       setError(explain(cause));
@@ -527,7 +540,15 @@ export function CreateHousehold({
         </label>
         <label className="admin-field">
           <span>Email</span>
-          <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="opcional" />
+          <input
+            type="text"
+            inputMode="email"
+            autoComplete="off"
+            spellCheck={false}
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="opcional"
+          />
         </label>
         <label className="admin-field">
           <span>Cupos</span>
