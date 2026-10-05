@@ -21,7 +21,7 @@ export const afterStay = {
   title: "After del Matri",
   subtitle: "La celebración no termina el domingo ✨",
   intro: [
-    "Nosotros nos quedaremos unos días más en Colombia después del matrimonio y estaremos hospedados en Hotel Del Mar, en El Rodadero, desde el domingo 21 hasta el jueves 25 de marzo.",
+    "Nosotros nos quedaremos unos días más en Colombia después del matrimonio y estaremos hospedados en Hotel Del Mar, en El Rodadero, desde el domingo 21 hasta el viernes 26 de marzo.",
     "Si también quieres alargar el viaje, descansar unos días y seguir compartiendo con nosotros, acá te dejamos la información del hotel para que puedas sumarte.",
   ],
   hotel: {
@@ -29,7 +29,7 @@ export const afterStay = {
     locationLabel: "Ubicación",
     location: "El Rodadero, Santa Marta",
     datesLabel: "Fechas",
-    dates: "21 al 25 de marzo de 2027",
+    dates: "21 al 26 de marzo de 2027",
     facts: [
       { icon: "in", label: "Check-in: 3:00 pm · Check-out: 1:00 pm" },
       { icon: "price", label: "Desde $300.000 COP / noche" },
@@ -44,11 +44,11 @@ export const afterStay = {
       label: "Reservar por WhatsApp",
       phone: "+57 322 5693210",
       message:
-        "Hola, venimos por el matrimonio de Maru y Fer y nos gustaría consultar disponibilidad para hospedarnos en Hotel Del Mar del 21 al 25 de marzo de 2027. Somos [número de personas] y nos interesa una habitación [Queen / Twin / Family]. ¿Nos podrían indicar la tarifa disponible y cómo hacer la reserva? ¡Gracias!",
+        "Hola, venimos por el matrimonio de Maru y Fer y nos gustaría consultar disponibilidad para hospedarnos en Hotel Del Mar del 21 al 26 de marzo de 2027. Somos [número de personas] y nos interesa una habitación [Queen / Twin / Family]. ¿Nos podrían indicar la tarifa disponible y cómo hacer la reserva? ¡Gracias!",
     },
     booking: {
       label: "Ver disponibilidad en Booking",
-      url: "https://www.booking.com/hotel/co/del-mar.html?ssne=Santa+Marta&ssne_untouched=Santa+Marta&highlighted_hotels=1296137&ss=Santa+Marta&dest_id=5000&dest_type=district&hp_avform=1&origin=hp&do_availability_check=1&label=postbooking_confemail&sid=00209268ab14bc92f180d8532eb95522&aid=2311236&lang=es&sb=1&src_elem=sb&src=hotel&checkin=2027-03-21&checkout=2027-03-25&group_adults=2&no_rooms=1&group_children=0#availability_target",
+      url: "https://www.booking.com/hotel/co/del-mar.html?ssne=Santa+Marta&ssne_untouched=Santa+Marta&highlighted_hotels=1296137&ss=Santa+Marta&dest_id=5000&dest_type=district&hp_avform=1&origin=hp&do_availability_check=1&label=postbooking_confemail&sid=00209268ab14bc92f180d8532eb95522&aid=2311236&lang=es&sb=1&src_elem=sb&src=hotel&checkin=2027-03-21&checkout=2027-03-26&group_adults=2&no_rooms=1&group_children=0#availability_target",
     },
     website: {
       label: "Reservar en la web",

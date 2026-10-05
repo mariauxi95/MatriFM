@@ -72,7 +72,7 @@ export const tours: Tour[] = [
     time: "18:00 a 22:00 hrs",
     pricePerPerson: 180000,
     priceUsd: 55,
-    meetingPoint: "Por confirmar",
+    meetingPoint: "Sector El Rodadero",
     description:
       "La experiencia comienza a bordo de un catamarán con un recorrido nocturno por las bahías de Santa Marta, acompañado de música y ambiente de fiesta.",
     sections: [
@@ -111,7 +111,7 @@ export const tours: Tour[] = [
     time: "9:00 a 17:30 hrs",
     pricePerPerson: 210000,
     priceUsd: 65,
-    meetingPoint: "Por confirmar",
+    meetingPoint: "Sector El Rodadero",
     description:
       "El recorrido se realiza en lancha por la costa del Parque Tayrona, pasando por distintas playas y bahías antes de llegar a Playa Cinto.",
     sections: [

@@ -51,7 +51,6 @@ export const itinerary: ItineraryDay[] = [
     time: "7:00 p. m.",
     photo: assetUrl("/images/gallery/cita.jpg?v=5"),
     photoPosition: "center 34%",
-    photoScale: 1.22,
     dressEs: "Blanco · casual playa",
     dressEn: "White · casual beach",
     dressLink: "https://www.pinterest.com/mariauxirodrguez/last-stop-before-i-do/",
@@ -191,8 +190,8 @@ export const itinerary: ItineraryDay[] = [
       },
       {
         time: "10:30 a. m.",
-        titleEs: "Tour Playas Tayrona",
-        titleEn: "Tayrona beaches tour",
+        titleEs: "Tour Buritaca",
+        titleEn: "Buritaca tour",
         placeEs: "Opcional, a costo individual",
         placeEn: "Optional, individual cost",
         image: assetUrl("/images/itinerary/tayrona.png"),
