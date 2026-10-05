@@ -1,3 +1,4 @@
+import { choiceFromTransport } from "../../components/rsvp/model";
 import { tours as tourCatalog } from "../../data/tours";
 import {
   compareMembers,
@@ -9,7 +10,7 @@ import {
   type GuestKind,
   type GuestSide,
 } from "../../lib/sheets";
-import type { Contribution, FoodMain, RsvpPerson } from "../../types";
+import type { Contribution, DietaryNeed, FoodMain, FoodSide, RsvpChild, RsvpPerson } from "../../types";
 
 export type DeskFilter = "all" | "no-email" | "waiting" | "coming" | "declined" | "payments";
 export type SideFilter = "all" | "maru" | "fer";
@@ -49,9 +50,32 @@ const FOOD: Record<FoodMain, string> = {
   meat: "Carne",
   fish: "Salmón",
   both: "Ambos",
-  none: "Sin pref.",
+  none: "Sin preferencia",
   kids: "Niños",
 };
+
+const SIDE: Record<FoodSide, string> = {
+  pasta: "Pasta",
+  rice: "Risotto de champiñones",
+  both: "Ambos",
+  none: "Sin preferencia",
+};
+
+const DIET: Record<DietaryNeed, string> = {
+  none: "Ninguna",
+  vegetarian: "Vegetariano",
+  vegan: "Vegano",
+  glutenFree: "Sin gluten",
+  dairyFree: "Sin lácteos",
+  other: "Otro",
+};
+
+const BUS = {
+  there: "Ida",
+  back: "Regreso",
+  both: "Ida y vuelta",
+  none: "Aún no lo sé",
+} as const;
 
 export function buildDesk(
   households: AdminHousehold[],
@@ -271,7 +295,39 @@ export function personPlan(person: RsvpPerson | null) {
 export function personFood(person: RsvpPerson | null) {
   const main = person?.food.mainPreference;
   if (!main) return "—";
-  return FOOD[main];
+  const side = main === "kids" ? null : person?.food.sidePreference;
+  if (!side) return FOOD[main];
+  return `${FOOD[main]} · ${SIDE[side]}`;
+}
+
+export function personDiet(person: RsvpPerson | null) {
+  const needs = person?.food.dietaryRequirements ?? [];
+  if (!needs.length) return "—";
+  return needs
+    .map((need) => {
+      if (need !== "other") return DIET[need];
+      const detail = person?.food.dietaryOther.trim() ?? "";
+      return detail ? `Otro: ${detail}` : DIET.other;
+    })
+    .join(", ");
+}
+
+export function busLabel(people: RsvpPerson[]) {
+  const person = people.find((item) => item.transportation);
+  if (!person) return "—";
+  return BUS[choiceFromTransport(person.transportation)];
+}
+
+export function childrenLabel(children: RsvpChild[]) {
+  if (!children.length) return "—";
+  return children
+    .map((child) => {
+      const name = child.name.trim() || "Sin nombre";
+      const age = child.age == null ? "" : String(child.age);
+      const notes = child.allergiesOrSpecialMeal.trim();
+      return [name, age, notes].filter(Boolean).join(" · ");
+    })
+    .join("; ");
 }
 
 export function replyLabel(reply: ReplyState) {
@@ -292,12 +348,6 @@ export function planLabel(people: RsvpPerson[]) {
   const day = people.some((person) => person.events.weddingDay);
   const parts = [welcome ? "Bienvenida" : null, day ? "Boda" : null].filter(Boolean);
   return parts.length ? parts.join(" · ") : "—";
-}
-
-export function foodLabel(people: RsvpPerson[]) {
-  const mains = [...new Set(people.map((person) => person.food.mainPreference).filter(Boolean))] as FoodMain[];
-  if (!mains.length) return "—";
-  return mains.map((main) => FOOD[main]).join(", ");
 }
 
 export function noteLabel(row: DeskHousehold) {
@@ -356,8 +406,11 @@ export const EXPORT_HEADERS = [
   "Hotel",
   "Respuesta",
   "Plan",
+  "Bus",
   "Comida",
+  "Dieta",
   "Nota",
+  "Niños",
   "Regalos",
   ...TOUR_COLUMNS.map((tour) => tour.label),
   ...ACTIVITY_COLUMNS.map((activity) => activity.label),
@@ -384,8 +437,11 @@ export function guestExportRow(input: {
     hotel,
     replyLabel(row.reply),
     row.rsvp?.attending ? planLabel(row.rsvp.people) : "—",
+    row.rsvp?.attending ? busLabel(row.rsvp.people) : "—",
     personFood(person),
+    personDiet(person),
     guestNote(row, guest.fullName),
+    row.rsvp?.attending ? childrenLabel(row.rsvp.children) : "—",
     giftLabel(row.contributions),
     ...TOUR_COLUMNS.map((tour) => tourCell(row.tours, tour.id)),
     ...ACTIVITY_COLUMNS.map((activity) => activityCell(row.activities, activity.id)),

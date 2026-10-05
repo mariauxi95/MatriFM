@@ -21,7 +21,7 @@ import {
   type AgeGroup,
 } from "../../lib/sheets";
 import type { DeskHousehold } from "./model";
-import { AGE_OPTIONS, foodLabel, planLabel, whoLabel } from "./model";
+import { AGE_OPTIONS, busLabel, childrenLabel, personDiet, personFood, planLabel, whoLabel } from "./model";
 
 function explain(error: unknown) {
   const message = error instanceof Error ? error.message.toLowerCase() : "";
@@ -387,19 +387,20 @@ export function AdminPanel({
               <>
                 <p>{whoLabel(row)}</p>
                 <p>{planLabel(rsvp.people)}</p>
-                <p>{foodLabel(rsvp.people)}</p>
+                <p>Bus: {busLabel(rsvp.people)}</p>
+                {rsvp.people.map((person, index) => (
+                  <p key={`${person.name}-${index}`}>
+                    {person.name.trim() || "Sin nombre"}: {personFood(person)}
+                    {personDiet(person) === "—" ? "" : ` · ${personDiet(person)}`}
+                    {person.note?.trim() ? ` · ${person.note.trim()}` : ""}
+                  </p>
+                ))}
+                <p>Niños: {childrenLabel(rsvp.children)}</p>
               </>
             ) : null}
-            {rsvp.children.length ? (
-              <p>
-                Niños:{" "}
-                {rsvp.children
-                  .map((child) => child.name.trim())
-                  .filter(Boolean)
-                  .join(", ") || "—"}
-              </p>
+            {rsvp.attending && rsvp.people.some((person) => person.note?.trim()) ? null : rsvp.danceSong ? (
+              <p>Canción: {rsvp.danceSong}</p>
             ) : null}
-            {rsvp.danceSong ? <p>Canción: {rsvp.danceSong}</p> : null}
             {rsvp.message ? <p>{rsvp.message}</p> : null}
           </div>
         ) : (

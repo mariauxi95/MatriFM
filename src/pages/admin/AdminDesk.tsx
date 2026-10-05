@@ -10,6 +10,8 @@ import {
   activityCell,
   ageLabel,
   buildDesk,
+  busLabel,
+  childrenLabel,
   deskGuests,
   EXPORT_HEADERS,
   formatHeads,
@@ -22,9 +24,11 @@ import {
   matchesSide,
   memberHeadcount,
   guestNote,
+  personDiet,
   personFood,
   sortName,
   planLabel,
+  replyLabel,
   rsvpPersonFor,
   TOUR_COLUMNS,
   tourCell,
@@ -294,9 +298,13 @@ export function AdminDesk({
                   <th>Email</th>
                   <th>Invitación</th>
                   <th className="admin-hotel-col">Hotel</th>
+                  <th className="is-reply">Respuesta</th>
                   <th className="is-reply">Plan</th>
+                  <th className="is-reply">Bus</th>
                   <th className="is-reply">Comida</th>
+                  <th className="is-reply">Dieta</th>
                   <th className="is-reply">Nota</th>
+                  <th className="is-reply">Niños</th>
                   <th className="is-pay">Regalos</th>
                   {TOUR_COLUMNS.map((tour) => (
                     <th key={tour.id} className="is-pay">
@@ -546,8 +554,11 @@ function HouseholdRows({
   const { household } = row;
   const guests = deskGuests(row);
   const span = guests.length;
-  const columns = 8 + TOUR_COLUMNS.length + ACTIVITY_COLUMNS.length;
-  const plan = row.rsvp?.attending ? planLabel(row.rsvp.people) : "—";
+  const columns = 12 + TOUR_COLUMNS.length + ACTIVITY_COLUMNS.length;
+  const coming = Boolean(row.rsvp?.attending);
+  const plan = coming ? planLabel(row.rsvp?.people ?? []) : "—";
+  const bus = coming ? busLabel(row.rsvp?.people ?? []) : "—";
+  const children = coming ? childrenLabel(row.rsvp?.children ?? []) : "—";
   const gifts = giftLabel(row.contributions);
 
   return (
@@ -610,16 +621,30 @@ function HouseholdRows({
                 </>
               ) : null}
               {index === 0 ? (
-                <td className="admin-span is-reply" rowSpan={span}>
-                  {plan}
-                </td>
+                <>
+                  <td className="admin-span is-reply" rowSpan={span}>
+                    {replyLabel(row.reply)}
+                  </td>
+                  <td className="admin-span is-reply" rowSpan={span}>
+                    {plan}
+                  </td>
+                  <td className="admin-span is-reply" rowSpan={span}>
+                    {bus}
+                  </td>
+                </>
               ) : null}
               <td className="is-reply">{personFood(person)}</td>
+              <td className="is-reply" title={personDiet(person)}>
+                {personDiet(person)}
+              </td>
               <td className="is-reply admin-ellipsis" title={guestNote(row, guest.fullName)}>
                 {guestNote(row, guest.fullName)}
               </td>
               {index === 0 ? (
                 <>
+                  <td className="admin-span is-reply admin-ellipsis" rowSpan={span} title={children}>
+                    {children}
+                  </td>
                   <td className="admin-span is-pay" rowSpan={span}>
                     {gifts}
                   </td>
