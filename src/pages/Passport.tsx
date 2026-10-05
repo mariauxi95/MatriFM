@@ -166,6 +166,14 @@ export function Passport() {
     }
   }
 
+  function openSection(id: SectionId) {
+    setSection(id);
+    if (!window.matchMedia("(max-width: 720px)").matches) return;
+    window.setTimeout(() => {
+      document.getElementById("passport-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 40);
+  }
+
   const displayName = passport?.displayName || guest?.displayName || "";
 
   return (
@@ -200,11 +208,12 @@ export function Passport() {
                     key={step.id}
                     type="button"
                     role="tab"
+                    className={step.ready ? "is-ready" : ""}
                     aria-selected={section === step.id}
                     aria-current={section === step.id ? "true" : undefined}
-                    onClick={() => setSection(step.id)}
+                    onClick={() => openSection(step.id)}
                   >
-                    <i aria-hidden />
+                    <span className="passport-card-mark" aria-hidden />
                     <b>{step.title}</b>
                     <small>{step.hint}</small>
                   </button>
@@ -222,7 +231,7 @@ export function Passport() {
                 onSavePlans={() => void savePlans()}
               />
             </div>
-            <div className="passport-panel">
+            <div className="passport-panel" id="passport-panel">
               <div hidden={section !== "people"}>
                 <PeopleLeaf
                   members={passport.members}
@@ -342,23 +351,27 @@ function railSteps(
       id: "people" as const,
       title: t("passPeopleTitle"),
       hint: missingEmails ? t("passMissingEmails", { n: missingEmails }) : t("passEmailsOk"),
+      ready: missingEmails === 0,
     },
-    { id: "reply" as const, title: t("passReplyTitle"), hint: statusLine(passport, t) },
+    { id: "reply" as const, title: t("passReplyTitle"), hint: statusLine(passport, t), ready: Boolean(passport.rsvp) },
     {
       id: "gifts" as const,
       title: t("passGiftsTitle"),
       hint: passport.contributions.length ? t("passCount", { n: passport.contributions.length }) : t("passNoneYet"),
+      ready: passport.contributions.length > 0,
     },
-    { id: "flights" as const, title: t("passFlightsTitle"), hint: flightHint },
+    { id: "flights" as const, title: t("passFlightsTitle"), hint: flightHint, ready: plans.arrival.booked || plans.departure.booked },
     {
       id: "stay" as const,
       title: t("passStayTitle"),
       hint: passport.lodging === "bohemia" ? lodgingNames.bohemia : plans.stay.reserved ? place || t("passYes") : t("passNoneYet"),
+      ready: passport.lodging === "bohemia" || Boolean(plans.stay.reserved && place),
     },
     {
       id: "extra" as const,
       title: t("passExtraTitle"),
       hint: plans.before.yes || plans.after.yes ? t("passYes") : t("passNoneYet"),
+      ready: plans.before.yes != null || plans.after.yes != null,
     },
   ];
 }

@@ -237,6 +237,7 @@ export function AfterSection() {
             </li>
           ))}
         </ul>
+        <p className="after-hotel-note">{hotel.note}</p>
       </article>
 
       <div className="after-ctas">

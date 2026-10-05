@@ -24,6 +24,29 @@ function LegacyInviteRedirect() {
   return <Navigate to={{ pathname, search: location.search, hash: location.hash }} replace />;
 }
 
+function KeepFieldVisible() {
+  useEffect(() => {
+    function onFocus(event: globalThis.FocusEvent) {
+      const target = event.target;
+      if (
+        !(target instanceof HTMLInputElement) &&
+        !(target instanceof HTMLTextAreaElement) &&
+        !(target instanceof HTMLSelectElement)
+      ) {
+        return;
+      }
+      if (target.disabled) return;
+      if (target instanceof HTMLInputElement && (target.type === "checkbox" || target.type === "radio")) return;
+      window.setTimeout(() => {
+        target.scrollIntoView({ block: "center", inline: "nearest" });
+      }, 320);
+    }
+    document.addEventListener("focusin", onFocus);
+    return () => document.removeEventListener("focusin", onFocus);
+  }, []);
+  return null;
+}
+
 function ClubRedirect() {
   const navigate = useNavigate();
   useEffect(() => {
@@ -36,6 +59,7 @@ export function App() {
   return (
     <LanguageProvider>
       <GuestProvider>
+        <KeepFieldVisible />
         <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, "") || undefined}>
           <Routes>
             <Route path="/" element={<Gate />} />

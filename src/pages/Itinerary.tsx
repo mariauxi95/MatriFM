@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DayTimeline } from "../components/itinerary/DayTimeline";
 import { PinterestBoard } from "../components/PinterestBoard";
 import { itinerary } from "../data/itinerary";
@@ -15,6 +15,26 @@ export function Itinerary() {
   const { lang, t } = useLang();
   const [dressOpen, setDressOpen] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState<string | null>(null);
+  const pendingScroll = useRef<string | null>(null);
+
+  useEffect(() => {
+    const id = pendingScroll.current;
+    if (!id) return;
+    pendingScroll.current = null;
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [detailOpen, dressOpen]);
+
+  function toggleDetail(id: string) {
+    const next = detailOpen === id ? null : id;
+    if (next) pendingScroll.current = `day-detail-${id}`;
+    setDetailOpen(next);
+  }
+
+  function toggleDress(id: string) {
+    const next = dressOpen === id ? null : id;
+    if (next) pendingScroll.current = `day-dress-${id}`;
+    setDressOpen(next);
+  }
 
   return (
     <main className="itinerary-page">
@@ -30,7 +50,8 @@ export function Itinerary() {
           const dressExpanded = dressOpen === day.id;
           const detailExpanded = detailOpen === day.id;
           return (
-            <article className={`day-card${dressExpanded || detailExpanded ? " is-open" : ""}`} key={day.id}>
+            <div className="day-slot" key={day.id}>
+            <article className={`day-card${dressExpanded || detailExpanded ? " is-open" : ""}`}>
               <img
                 src={day.photo}
                 alt=""
@@ -54,7 +75,7 @@ export function Itinerary() {
                     className="pill-link"
                     type="button"
                     aria-expanded={dressExpanded}
-                    onClick={() => setDressOpen(dressExpanded ? null : day.id)}
+                    onClick={() => toggleDress(day.id)}
                   >
                     {t("dresscode")}: {lang === "es" ? day.dressEs : day.dressEn}
                   </button>
@@ -83,35 +104,32 @@ export function Itinerary() {
                   className="btn tertiary"
                   type="button"
                   aria-expanded={detailExpanded}
-                  onClick={() => setDetailOpen(detailExpanded ? null : day.id)}
+                  onClick={() => toggleDetail(day.id)}
                 >
                   {detailExpanded ? t("hideDay") : t("seeDay")}
                 </button>
                 </div>
               </div>
             </article>
+            {dressExpanded && day.pinterestBoard ? (
+              <div className="day-detail" id={`day-dress-${day.id}`}>
+                <PinterestBoard url={day.pinterestBoard} title={day.pinterestTitle ?? t("dressInspo")} />
+              </div>
+            ) : null}
+            {detailExpanded ? (
+              <div className="day-detail" id={`day-detail-${day.id}`}>
+                <DayTimeline
+                  day={day}
+                  titleKey={DETAIL_TITLE[day.id]}
+                  dressExpanded={dressExpanded}
+                  onDress={() => toggleDress(day.id)}
+                />
+              </div>
+            ) : null}
+            </div>
           );
         })}
       </div>
-      {itinerary
-        .filter((day) => day.id === dressOpen && day.pinterestBoard)
-        .map((day) => (
-          <div className="day-detail" key={`${day.id}-dress`}>
-            <PinterestBoard url={day.pinterestBoard!} title={day.pinterestTitle ?? t("dressInspo")} />
-          </div>
-        ))}
-      {itinerary
-        .filter((day) => day.id === detailOpen)
-        .map((day) => (
-          <div className="day-detail" key={`${day.id}-detail`}>
-            <DayTimeline
-              day={day}
-              titleKey={DETAIL_TITLE[day.id]}
-              dressExpanded={dressOpen === day.id}
-              onDress={() => setDressOpen(dressOpen === day.id ? null : day.id)}
-            />
-          </div>
-        ))}
       </div>
     </main>
   );

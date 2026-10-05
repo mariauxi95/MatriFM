@@ -36,6 +36,7 @@ export const afterStay = {
       { icon: "breakfast", label: "Desayuno buffet incluido" },
       { icon: "pool", label: "Piscina disponible de 9:00 am a 7:30 pm" },
     ] satisfies AfterFact[],
+    note: "Nota: si reservan por la web y registran su email, por ahora pueden pedir un 10% de descuento en la primera reserva. Si escriben al WhatsApp, avisen que vienen del extranjero para que no les cobren los impuestos.",
   },
   priceNote:
     "Las tarifas informadas son referenciales y pueden cambiar según disponibilidad. Recomendamos comparar el precio vigente directamente por WhatsApp, Booking o la web del hotel antes de reservar.",

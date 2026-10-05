@@ -190,26 +190,48 @@ export function Gifts() {
                 </button>
               </div>
               {step !== "done" ? (
-                <ol className="gift-drawer-steps" aria-label="Progress">
-                  {(
-                    [
-                      ["method", "giftStepMethod"],
-                      ["amount", "giftStepAmount"],
-                      ["pay", "giftStepPay"],
-                      ["form", "giftStepForm"],
-                    ] as const
-                  ).map(([id, labelKey], index) => {
-                    const order = ["method", "amount", "pay", "form"] as const;
-                    const active = order.indexOf(step as (typeof order)[number]);
-                    const state = index < active ? "is-done" : index === active ? "is-active" : "";
-                    return (
-                      <li key={id} className={state}>
-                        <span aria-hidden>{String(index + 1).padStart(2, "0")}</span>
-                        <b>{t(labelKey)}</b>
-                      </li>
-                    );
-                  })}
-                </ol>
+                <>
+                  <p className="gift-drawer-now">
+                    <span>
+                      {t("giftStepNow", {
+                        n: (["method", "amount", "pay", "form"] as const).indexOf(step) + 1,
+                        total: 4,
+                      })}
+                    </span>
+                    <b>
+                      {t(
+                        (
+                          {
+                            method: "giftStepMethod",
+                            amount: "giftStepAmount",
+                            pay: "giftStepPay",
+                            form: "giftStepForm",
+                          } as const
+                        )[step],
+                      )}
+                    </b>
+                  </p>
+                  <ol className="gift-drawer-steps" aria-label="Progress">
+                    {(
+                      [
+                        ["method", "giftStepMethod"],
+                        ["amount", "giftStepAmount"],
+                        ["pay", "giftStepPay"],
+                        ["form", "giftStepForm"],
+                      ] as const
+                    ).map(([id, labelKey], index) => {
+                      const order = ["method", "amount", "pay", "form"] as const;
+                      const active = order.indexOf(step);
+                      const state = index < active ? "is-done" : index === active ? "is-active" : "";
+                      return (
+                        <li key={id} className={state}>
+                          <span aria-hidden>{String(index + 1).padStart(2, "0")}</span>
+                          <b>{t(labelKey)}</b>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                </>
               ) : null}
             </header>
 

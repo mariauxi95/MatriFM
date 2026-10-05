@@ -1,6 +1,6 @@
 import { assetUrl } from "../lib/assets";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { ChoiceChip } from "../components/rsvp/ChoiceChip";
 import {
   choiceFromEvents,
@@ -452,6 +452,17 @@ export function Rsvp() {
           <div className="rsvp-success-burst" aria-hidden />
           <h1>{phase === "success" ? t("rsvpSuccessTitle") : t("rsvpDeclineOk")}</h1>
           {phase === "success" ? <p>{t("rsvpSuccessBody")}</p> : <p>{t("rsvpDeclineBody")}</p>}
+          {phase === "success" ? (
+            <nav className="rsvp-next" aria-label={t("rsvpNextLead")}>
+              <p>{t("rsvpNextLead")}</p>
+              <div className="rsvp-next-pills">
+                <Link to="../lugar">{t("navVenue")}</Link>
+                <Link to="../itinerario">{t("navItinerary")}</Link>
+                <Link to="../regalos">{t("navGifts")}</Link>
+                <Link to="../viaje">{t("navTravel")}</Link>
+              </div>
+            </nav>
+          ) : null}
         </div>
         {phase === "success" ? <RsvpDoneHint /> : null}
       </main>
