@@ -21,7 +21,7 @@ import {
   type AgeGroup,
 } from "../../lib/sheets";
 import type { DeskHousehold } from "./model";
-import { AGE_OPTIONS, busLabel, childrenLabel, personDiet, personFood, planLabel, whoLabel } from "./model";
+import { AGE_OPTIONS, busLabel, childrenLabel, paymentMethodLabel, personDiet, personFood, planLabel, whoLabel } from "./model";
 
 function explain(error: unknown) {
   const message = error instanceof Error ? error.message.toLowerCase() : "";
@@ -431,7 +431,8 @@ export function AdminPanel({
               <div>
                 <b>{item.anonymous ? "Anónimo" : item.name}</b>
                 <small>
-                  {title} · {formatMoney(item.amountOriginal, item.currencyOriginal)} · {item.status}
+                  {title} · {formatMoney(item.amountOriginal, item.currencyOriginal)} · {paymentMethodLabel(item.method)} · {item.status}
+                  {item.dedication.trim() ? ` · ${item.dedication.trim()}` : ""}
                 </small>
               </div>
               {item.status === "pending" ? (
@@ -452,7 +453,7 @@ export function AdminPanel({
             <div>
               <b>{item.tourName}</b>
               <small>
-                {item.guestName} · {item.quantity} · {formatCop(item.totalAmount)} · {item.paymentStatus}
+                {item.guestName} · {item.quantity} · {item.childrenCount} {item.childrenCount === 1 ? "niño" : "niños"} · {formatCop(item.totalAmount)} · {item.paymentStatus}
               </small>
             </div>
             {item.paymentStatus === "Pendiente" ? (

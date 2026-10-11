@@ -356,22 +356,40 @@ export function noteLabel(row: DeskHousehold) {
   return parts.length ? parts.join(" · ") : "—";
 }
 
+const PAYMENT: Record<Contribution["method"], string> = {
+  clp: "CLP",
+  cad: "Interac",
+  zelle: "Zelle",
+  wise: "Wise",
+  eur: "EUR",
+};
+
+export function paymentMethodLabel(method: Contribution["method"]) {
+  return PAYMENT[method] ?? method;
+}
+
+function peopleCount(count: number, singular: string, plural: string) {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
 export function giftLabel(items: Contribution[]) {
-  const pending = items.filter((item) => item.status === "pending").length;
-  const confirmed = items.filter((item) => item.status === "confirmed").length;
-  const parts = [
-    pending ? `${pending} pendiente${pending === 1 ? "" : "s"}` : null,
-    confirmed ? `${confirmed} confirmado${confirmed === 1 ? "" : "s"}` : null,
-  ].filter(Boolean);
-  return parts.length ? parts.join(" · ") : "—";
+  if (!items.length) return "—";
+  return items
+    .map((item) => {
+      const status = item.status === "pending" ? "Pendiente" : item.status === "confirmed" ? "Confirmado" : "Cancelado";
+      const dedication = item.dedication.trim();
+      return [status, paymentMethodLabel(item.method), dedication].filter(Boolean).join(" · ");
+    })
+    .join("; ");
 }
 
 export function tourCell(items: AdminTourReservation[], tourId: string) {
   const rows = items.filter((item) => item.tourId === tourId);
   if (!rows.length) return "—";
   const quantity = rows.reduce((sum, item) => sum + item.quantity, 0);
+  const children = rows.reduce((sum, item) => sum + item.childrenCount, 0);
   const pending = rows.some((item) => item.paymentStatus !== "Pagado");
-  return `${quantity} · ${pending ? "Pendiente" : "Pagado"}`;
+  return `${quantity} · ${peopleCount(children, "niño", "niños")} · ${pending ? "Pendiente" : "Pagado"}`;
 }
 
 export function activityCell(items: ActivitySignup[], id: ActivityColumnId) {

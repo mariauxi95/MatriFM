@@ -645,14 +645,17 @@ function HouseholdRows({
                   <td className="admin-span is-reply admin-ellipsis" rowSpan={span} title={children}>
                     {children}
                   </td>
-                  <td className="admin-span is-pay" rowSpan={span}>
+                  <td className="admin-span is-pay admin-ellipsis" rowSpan={span} title={gifts}>
                     {gifts}
                   </td>
-                  {TOUR_COLUMNS.map((tour) => (
-                    <td key={tour.id} className="admin-span is-pay" rowSpan={span}>
-                      {tourCell(row.tours, tour.id)}
-                    </td>
-                  ))}
+                  {TOUR_COLUMNS.map((tour) => {
+                    const label = tourCell(row.tours, tour.id);
+                    return (
+                      <td key={tour.id} className="admin-span is-pay" rowSpan={span} title={label}>
+                        {label}
+                      </td>
+                    );
+                  })}
                   {ACTIVITY_COLUMNS.map((activity) => (
                     <td key={activity.id} className="admin-span is-activity" rowSpan={span}>
                       {activityCell(row.activities, activity.id)}
