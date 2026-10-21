@@ -22,7 +22,7 @@ export function RemoteCover() {
   }
 
   return (
-    <main className={`cover${leaving ? " is-leaving" : ""}`}>
+    <main className={`cover remote-cover${leaving ? " is-leaving" : ""}`}>
       <CoverFilm leaving={leaving} />
       <LangToggle />
       <div className="cover-editorial">

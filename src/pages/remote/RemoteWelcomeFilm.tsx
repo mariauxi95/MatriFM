@@ -85,7 +85,7 @@ export function RemoteWelcomeFilm() {
 
   return (
     <div
-      className={`welcome-film${show ? "" : " is-holding"}`}
+      className={`welcome-film is-remote${show ? "" : " is-holding"}`}
       role={show ? "dialog" : undefined}
       aria-modal={show ? true : undefined}
       aria-hidden={show ? undefined : true}
