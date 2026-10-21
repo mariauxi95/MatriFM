@@ -6026,6 +6026,19 @@ td {
   min-height: 0;
 }
 
+.remote-home .hero-countdown .eyebrow {
+  font-size: clamp(0.95rem, 1.6vw, 1.15rem);
+  letter-spacing: 0.1em;
+}
+
+.remote-home .hero-countdown .countdown b {
+  font-size: clamp(2rem, 4.2vw, 2.8rem);
+}
+
+.remote-home .hero-countdown .countdown span {
+  font-size: clamp(0.85rem, 1.3vw, 1rem);
+}
+
 .remote-live-bar {
   border-radius: 999px;
   padding: 0.28rem 0.28rem 0.28rem 0.45rem;
@@ -6072,71 +6085,72 @@ td {
   }
 
   .remote-cover h1.cover-names {
-    font-size: clamp(3.05rem, 13vw, 3.8rem);
-    letter-spacing: 0.05em;
+    font-size: clamp(3.35rem, 14vw, 4.1rem);
+    letter-spacing: 0.04em;
   }
 
   .remote-cover .remote-cover-meta {
-    font-size: clamp(1.95rem, 7vw, 2.3rem);
-    gap: 0.15rem;
+    font-size: clamp(2.15rem, 8vw, 2.55rem);
+    gap: 0.2rem;
   }
 
   .remote-cover .remote-cover-note {
     width: 100%;
-    padding: 1.2rem 1.05rem 1.3rem;
+    padding: 1.35rem 1.1rem 1.45rem;
   }
 
   .remote-cover .remote-cover-note p {
-    font-size: clamp(1.65rem, 6.2vw, 1.95rem);
+    font-size: clamp(1.85rem, 7vw, 2.15rem);
   }
 
   .remote-cover .cover-cta {
-    height: 58px;
-    font-size: 0.95rem;
-    letter-spacing: 0.12em;
+    height: 64px;
+    font-size: 1.05rem;
+    letter-spacing: 0.08em;
   }
 
   .remote-home .hero-frame h1 {
-    font-size: clamp(1.9rem, 8.2vw, 2.45rem);
+    font-size: clamp(1.95rem, 8.2vw, 2.45rem);
     max-width: 14ch;
   }
 
   .remote-home .hero-slide {
-    object-position: center 46%;
-    transform: scale(1.12);
+    object-position: center 42%;
+    transform: scale(1.28);
   }
 
   .remote-home .hero-countdown {
-    align-content: center;
-    padding-bottom: 24vh;
+    align-content: end;
+    padding-bottom: 14.5rem;
   }
 
   .remote-home .hero-countdown .countdown-block {
-    width: min(100%, 22rem);
-    padding: 1rem 0.7rem 1.05rem;
+    width: min(100%, 24rem);
+    padding: 1.15rem 0.85rem 1.2rem;
   }
 
   .remote-home .hero-countdown .eyebrow {
-    font-size: 0.84rem;
-    letter-spacing: 0.12em;
+    font-size: 1.05rem;
+    letter-spacing: 0.08em;
   }
 
   .remote-home .hero-countdown .countdown b {
-    font-size: clamp(2.05rem, 9vw, 2.65rem);
+    font-size: clamp(2.6rem, 12vw, 3.3rem);
   }
 
   .remote-home .hero-countdown .countdown span {
-    font-size: 0.8rem;
+    font-size: 0.95rem;
+    letter-spacing: 0.04em;
   }
 
   .remote-live-bar {
     border-radius: 22px;
-    padding: 0.75rem 0.7rem 0.65rem;
+    padding: 0.9rem 0.8rem 0.8rem;
   }
 
   .remote-live-bar .booking-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 0.4rem 0.55rem;
+    grid-template-columns: 1fr;
+    gap: 0.55rem;
   }
 
   .remote-live-bar .booking-cell:nth-child(2) {
@@ -6144,23 +6158,23 @@ td {
   }
 
   .remote-live-bar .booking-cell span {
-    font-size: 0.72rem;
-    letter-spacing: 0.06em;
+    font-size: 0.95rem;
+    letter-spacing: 0.08em;
   }
 
   .remote-live-bar .booking-cell b {
-    font-size: 1.08rem;
+    font-size: 1.35rem;
   }
 
   .remote-live-bar .booking-go {
     grid-column: 1 / -1;
     width: 100%;
-    min-height: 50px;
-    font-size: 0.92rem;
+    min-height: 56px;
+    font-size: 1.05rem;
   }
 
   .remote-live-page .page-banner {
-    height: min(46vh, 360px);
+    height: min(58vh, 460px);
   }
 
   .welcome-film.is-remote {
