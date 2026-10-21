@@ -1,6 +1,6 @@
 import * as XLSX from "xlsx";
 
-export function downloadGuestSheet(headers: string[], rows: string[][]) {
+export function downloadSheet(fileBase: string, sheetName: string, headers: string[], rows: string[][]) {
   const sheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
   sheet["!cols"] = headers.map((header, index) => {
     const longest = rows.reduce((max, row) => Math.max(max, (row[index] ?? "").length), header.length);
@@ -15,7 +15,11 @@ export function downloadGuestSheet(headers: string[], rows: string[][]) {
     };
   }
   const book = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(book, sheet, "Invitados");
+  XLSX.utils.book_append_sheet(book, sheet, sheetName);
   const stamp = new Date().toISOString().slice(0, 10);
-  XLSX.writeFile(book, `invitados-${stamp}.xlsx`);
+  XLSX.writeFile(book, `${fileBase}-${stamp}.xlsx`);
+}
+
+export function downloadGuestSheet(headers: string[], rows: string[][]) {
+  downloadSheet("invitados", "Invitados", headers, rows);
 }

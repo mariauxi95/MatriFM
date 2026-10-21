@@ -507,6 +507,30 @@ export async function submitTourReservation(
 
 export type AdminRsvp = RsvpRecord & { householdId: string };
 
+export async function adminClearRsvp(householdId: string) {
+  const { error } = await supabase.rpc("admin_clear_rsvp", { p_household_id: householdId });
+  fail(error);
+}
+
+export async function adminSaveRsvp(input: {
+  householdId: string;
+  status: "waiting" | "coming" | "declined";
+  people: RsvpPerson[];
+  children: RsvpChild[];
+  danceSong: string;
+  message: string;
+}) {
+  const { error } = await supabase.rpc("admin_save_rsvp", {
+    p_household_id: input.householdId,
+    p_status: input.status,
+    p_people: input.people,
+    p_children: input.children,
+    p_dance_song: input.danceSong,
+    p_message: input.message,
+  });
+  fail(error);
+}
+
 export async function adminListRsvps(): Promise<AdminRsvp[]> {
   const { data, error } = await supabase.from("rsvps").select("*").order("updated_at", { ascending: false });
   fail(error);
@@ -535,6 +559,37 @@ export async function adminUpdateStatus(id: string, status: Contribution["status
       confirmed_at: status === "confirmed" ? new Date().toISOString() : null,
     })
     .eq("id", id);
+  fail(error);
+}
+
+export async function adminRegisterContribution(input: {
+  householdId: string;
+  giftId: string;
+  name: string;
+  email: string;
+  amountOriginal: number;
+  currencyOriginal: Contribution["currencyOriginal"];
+  fxRateUsed: number;
+  amountUsdNormalized: number;
+  method: Contribution["method"];
+  dedication: string;
+  anonymous: boolean;
+  status: "pending" | "confirmed";
+}) {
+  const { error } = await supabase.rpc("admin_register_contribution", {
+    p_household_id: input.householdId,
+    p_gift_id: input.giftId,
+    p_guest_name: input.name,
+    p_email: input.email,
+    p_amount: input.amountOriginal,
+    p_currency: input.currencyOriginal,
+    p_fx_rate: input.fxRateUsed,
+    p_amount_usd: input.amountUsdNormalized,
+    p_method: input.method,
+    p_dedication: input.dedication,
+    p_anonymous: input.anonymous,
+    p_status: input.status,
+  });
   fail(error);
 }
 

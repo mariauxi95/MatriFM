@@ -153,6 +153,36 @@ export function formatHeads(count: Headcount) {
   return count.babies > 0 ? `${count.people} +${count.babies}` : String(count.people);
 }
 
+export type AgeHeads = { adults: number; teens: number; kids: number; babies: number };
+
+export function ageHeadcount(rows: DeskHousehold[], reply: ReplyState): AgeHeads {
+  const count: AgeHeads = { adults: 0, teens: 0, kids: 0, babies: 0 };
+  for (const row of rows) {
+    if (row.reply !== reply) continue;
+    for (const member of row.household.members) {
+      if (member.ageGroup === "baby") count.babies += 1;
+      else if (member.ageGroup === "kid") count.kids += 1;
+      else if (member.ageGroup === "teen") count.teens += 1;
+      else count.adults += 1;
+    }
+  }
+  return count;
+}
+
+function ageWord(count: number, one: string, many: string) {
+  return `${count} ${count === 1 ? one : many}`;
+}
+
+export function formatAgeHeads(count: AgeHeads) {
+  const parts = [
+    ageWord(count.adults, "adulto", "adultos"),
+    ageWord(count.kids, "niño", "niños"),
+    ageWord(count.babies, "bebé", "bebés"),
+  ];
+  if (count.teens > 0) parts.splice(1, 0, ageWord(count.teens, "adolescente", "adolescentes"));
+  return parts.join(" · ");
+}
+
 export function matchesFilter(row: DeskHousehold, filter: DeskFilter) {
   if (filter === "no-email") return row.missingEmail;
   if (filter === "waiting") return row.reply === "waiting";

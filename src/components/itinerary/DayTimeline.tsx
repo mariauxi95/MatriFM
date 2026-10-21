@@ -82,6 +82,7 @@ export function DayTimeline({
                     </p>
                   ) : null}
                   {event.placeEs ? <small>{lang === "es" ? event.placeEs : event.placeEn}</small> : null}
+                  {event.noteEs ? <small>{lang === "es" ? event.noteEs : event.noteEn}</small> : null}
                   {event.dresscode ? (
                     day.pinterestBoard ? (
                       <button

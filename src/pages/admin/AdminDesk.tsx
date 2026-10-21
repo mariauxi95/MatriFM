@@ -1,9 +1,13 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from "react";
+import { Link } from "react-router-dom";
 import { hotels } from "../../data/hotels";
 import type { ActivitySignup, AdminHousehold, AdminRsvp, AdminTourReservation } from "../../lib/sheets";
 import { adminSaveSettings, adminSetInviteSent, adminSetLodging, adminUpdateHousehold } from "../../lib/sheets";
 import type { Contribution, PaymentSettings } from "../../types";
+import { AdminGifts } from "./AdminGifts";
 import { AdminPanel, CreateHousehold } from "./AdminPanel";
+import { AdminReplies } from "./AdminReplies";
+import { AdminTours } from "./AdminTours";
 import { downloadGuestSheet } from "./excel";
 import {
   ACTIVITY_COLUMNS,
@@ -14,6 +18,8 @@ import {
   childrenLabel,
   deskGuests,
   EXPORT_HEADERS,
+  ageHeadcount,
+  formatAgeHeads,
   formatHeads,
   giftLabel,
   guestExportRow,
@@ -88,7 +94,7 @@ export function AdminDesk({
   const [lodgingId, setLodgingId] = useState<string | null>(null);
   const [nameOverride, setNameOverride] = useState<Record<string, string>>({});
   const [namingId, setNamingId] = useState<string | null>(null);
-  const [tab, setTab] = useState<"guests" | "transfers">("guests");
+  const [tab, setTab] = useState<"guests" | "gifts" | "tours" | "transfers" | "replies">("guests");
 
   const desk = useMemo(
     () => buildDesk(households, rsvps, contributions, reservations, signups),
@@ -213,15 +219,44 @@ export function AdminDesk({
         </button>
         <button
           type="button"
+          className={`admin-nav-item${tab === "replies" ? " is-current" : ""}`}
+          aria-current={tab === "replies" ? "page" : undefined}
+          onClick={() => setTab("replies")}
+        >
+          Respuestas
+        </button>
+        <button
+          type="button"
+          className={`admin-nav-item${tab === "gifts" ? " is-current" : ""}`}
+          aria-current={tab === "gifts" ? "page" : undefined}
+          onClick={() => setTab("gifts")}
+        >
+          Regalos
+        </button>
+        <button
+          type="button"
+          className={`admin-nav-item${tab === "tours" ? " is-current" : ""}`}
+          aria-current={tab === "tours" ? "page" : undefined}
+          onClick={() => setTab("tours")}
+        >
+          Tours
+        </button>
+        <button
+          type="button"
           className={`admin-nav-item${tab === "transfers" ? " is-current" : ""}`}
           aria-current={tab === "transfers" ? "page" : undefined}
           onClick={() => setTab("transfers")}
         >
           Transferencias
         </button>
-        <button className="admin-btn admin-btn-ghost" type="button" onClick={onSignOut}>
-          Salir
-        </button>
+        <div className="admin-nav-foot">
+          <Link className="admin-btn admin-btn-ghost" to="/invite">
+            Ver invitación
+          </Link>
+          <button className="admin-btn admin-btn-ghost" type="button" onClick={onSignOut}>
+            Salir
+          </button>
+        </div>
       </aside>
       {tab === "transfers" ? (
         <section className="admin-main">
@@ -237,6 +272,31 @@ export function AdminDesk({
             </div>
           </div>
         </section>
+      ) : tab === "replies" ? (
+        <AdminReplies desk={desk} onReload={onReload} />
+      ) : tab === "gifts" ? (
+        <AdminGifts
+          contributions={contributions}
+          households={households}
+          settings={settings}
+          onOpenHousehold={(id) => {
+            setCreating(false);
+            setSelectedId(id);
+            setTab("guests");
+          }}
+          onReload={onReload}
+        />
+      ) : tab === "tours" ? (
+        <AdminTours
+          reservations={reservations}
+          households={households}
+          onOpenHousehold={(id) => {
+            setCreating(false);
+            setSelectedId(id);
+            setTab("guests");
+          }}
+          onReload={onReload}
+        />
       ) : (
       <section className="admin-main">
         <header className="admin-top">
@@ -385,6 +445,7 @@ function DeskWidgets({
 }) {
   const everyone = memberHeadcount(desk);
   const totalHeads = headsOf(everyone) || 1;
+  const comingAges = ageHeadcount(desk, "coming");
   const replies = (
     [
       ["coming", "Vienen"],
@@ -437,7 +498,7 @@ function DeskWidgets({
               className={`is-${part.id}${filter === part.id ? " is-on" : ""}`}
               style={{ width: `${(headsOf(part.count) / totalHeads) * 100}%` }}
               aria-pressed={filter === part.id}
-              aria-label={`${part.label}: ${formatHeads(part.count)}`}
+              aria-label={part.id === "coming" ? `${part.label}: ${formatAgeHeads(comingAges)}` : `${part.label}: ${formatHeads(part.count)}`}
               disabled={headsOf(part.count) === 0}
               onClick={() => onFilter(part.id)}
             />
@@ -445,10 +506,28 @@ function DeskWidgets({
         </div>
         <div className="admin-legend">
           {replies.map((part) => (
-            <button key={part.id} type="button" className={filter === part.id ? "is-on" : ""} aria-pressed={filter === part.id} onClick={() => onFilter(part.id)}>
+            <button
+              key={part.id}
+              type="button"
+              className={`${filter === part.id ? "is-on" : ""}${part.id === "coming" ? " is-ages" : ""}`}
+              aria-pressed={filter === part.id}
+              aria-label={part.id === "coming" ? `${part.label}: ${formatAgeHeads(comingAges)}` : undefined}
+              onClick={() => onFilter(part.id)}
+            >
               <i className={`is-${part.id}`} />
               {part.label}
-              <b>{formatHeads(part.count)}</b>
+              {part.id === "coming" ? (
+                <span className="admin-age-split">
+                  <span><b>{comingAges.adults}</b> {comingAges.adults === 1 ? "adulto" : "adultos"}</span>
+                  {comingAges.teens > 0 ? (
+                    <span><b>{comingAges.teens}</b> {comingAges.teens === 1 ? "adolescente" : "adolescentes"}</span>
+                  ) : null}
+                  <span><b>{comingAges.kids}</b> {comingAges.kids === 1 ? "niño" : "niños"}</span>
+                  <span><b>{comingAges.babies}</b> {comingAges.babies === 1 ? "bebé" : "bebés"}</span>
+                </span>
+              ) : (
+                <b>{formatHeads(part.count)}</b>
+              )}
             </button>
           ))}
         </div>

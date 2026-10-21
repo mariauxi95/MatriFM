@@ -355,7 +355,7 @@ export const messages = {
     needsMinorTitle: "Travelling with a minor",
     needsMinorP1:
       "Contaremos con el apoyo de la agencia infantil Have Fun para niños desde los 4 años. Su equipo ofrecerá entretenimiento, manualidades, supervisión y acompañamiento durante la cena de los niños, para que los padres puedan disfrutar la noche con tranquilidad.",
-    needsMinorP2: "El servicio estará disponible desde las 6:00 p. m. (cóctel) hasta las 12:00 a. m.",
+    needsMinorP2: "El servicio estará disponible desde las 5:00 p. m. (cóctel) hasta las 12:00 a. m.",
     needsMinorP3:
       "A los niños se les servirá nuggets de pollo con papas fritas. Si tu hijo tiene alguna alergia, restricción alimentaria o necesita un menú especial, avísanos con anticipación.",
     needsBabyTitle: "Travelling with a baby",
@@ -830,7 +830,7 @@ export const messages = {
     needsMinorTitle: "Travelling with a minor",
     needsMinorP1:
       "We will have the support of the children’s agency Have Fun for children aged 4 and above. Their team will provide entertainment, crafts, supervision, and assistance during the children’s dinner, allowing parents to enjoy the evening with peace of mind.",
-    needsMinorP2: "The service will be available from 6:00 p.m. (cocktail hour) until 12:00 a.m.",
+    needsMinorP2: "The service will be available from 5:00 p.m. (cocktail hour) until 12:00 a.m.",
     needsMinorP3:
       "Children will be served chicken nuggets with French fries for dinner. If your child has any allergies, dietary restrictions, or requires a special meal, please let us know in advance.",
     needsBabyTitle: "Travelling with a baby",

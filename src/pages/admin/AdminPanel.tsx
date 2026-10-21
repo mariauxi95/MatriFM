@@ -8,6 +8,8 @@ import {
   adminDeleteHousehold,
   adminMoveMember,
   adminRemoveMember,
+  adminSaveRsvp,
+  adminClearRsvp,
   adminSetPrimary,
   adminSplitMember,
   adminTourStatus,
@@ -20,8 +22,9 @@ import {
   type AdminMember,
   type AgeGroup,
 } from "../../lib/sheets";
+import { AdminReply } from "./AdminReply";
 import type { DeskHousehold } from "./model";
-import { AGE_OPTIONS, busLabel, childrenLabel, paymentMethodLabel, personDiet, personFood, planLabel, whoLabel } from "./model";
+import { AGE_OPTIONS, paymentMethodLabel } from "./model";
 
 function explain(error: unknown) {
   const message = error instanceof Error ? error.message.toLowerCase() : "";
@@ -34,6 +37,12 @@ function explain(error: unknown) {
   if (message.includes("email_required")) return "Esa persona ya entró. Puedes cambiar el correo, pero no dejarlo vacío.";
   if (message.includes("bad_email")) return "Escribe un email válido.";
   if (message.includes("name_required")) return "El nombre no puede quedar vacío.";
+  if (message.includes("admin_clear_rsvp")) {
+    return "La base de datos todavía no puede borrar respuestas. Aplica la migración nueva en Supabase.";
+  }
+  if (message.includes("schema cache") || message.includes("admin_save_rsvp")) {
+    return "La base de datos todavía no puede guardar respuestas. Aplica la migración nueva en Supabase.";
+  }
   if (message.includes("bad_side") || message.includes("bad_kind")) return "Elige Maru o Fer, y Familia o Amigos.";
   if (message.includes("bad_age")) return "Elige bebé, niño, adolescente o adulto.";
   return "No se pudo guardar. Inténtalo de nuevo.";
@@ -222,7 +231,6 @@ export function AdminPanel({
   }
 
   const visible = people.slice(0, Math.max(1, draft.guestLimit));
-  const rsvp = row.rsvp;
   const destinations = households
     .filter((household) => household.id !== draft.id)
     .sort((a, b) => a.displayName.localeCompare(b.displayName, "es"));
@@ -392,33 +400,23 @@ export function AdminPanel({
           </div>
         ))}
 
-        <h3>Respuesta</h3>
-        {rsvp ? (
-          <div className="admin-readout">
-            <p>{rsvp.attending ? "Vienen" : "No vienen"}</p>
-            {rsvp.attending ? (
-              <>
-                <p>{whoLabel(row)}</p>
-                <p>{planLabel(rsvp.people)}</p>
-                <p>Bus: {busLabel(rsvp.people)}</p>
-                {rsvp.people.map((person, index) => (
-                  <p key={`${person.name}-${index}`}>
-                    {person.name.trim() || "Sin nombre"}: {personFood(person)}
-                    {personDiet(person) === "—" ? "" : ` · ${personDiet(person)}`}
-                    {person.note?.trim() ? ` · ${person.note.trim()}` : ""}
-                  </p>
-                ))}
-                <p>Niños: {childrenLabel(rsvp.children)}</p>
-              </>
-            ) : null}
-            {rsvp.attending && rsvp.people.some((person) => person.note?.trim()) ? null : rsvp.danceSong ? (
-              <p>Canción: {rsvp.danceSong}</p>
-            ) : null}
-            {rsvp.message ? <p>{rsvp.message}</p> : null}
-          </div>
-        ) : (
-          <p className="admin-muted">Todavía no responden.</p>
-        )}
+        <AdminReply
+          row={row}
+          busy={busy}
+          onSave={(reply) =>
+            run(async () => {
+              await adminSaveRsvp({
+                householdId: row.household.id,
+                status: reply.status,
+                people: reply.people,
+                children: reply.children,
+                danceSong: reply.danceSong,
+                message: reply.message,
+              });
+            })
+          }
+          onClear={() => run(() => adminClearRsvp(row.household.id))}
+        />
 
         <h3>Pagos</h3>
         {row.contributions.length === 0 && row.tours.length === 0 ? (

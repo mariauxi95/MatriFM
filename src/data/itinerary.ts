@@ -9,6 +9,8 @@ export type ItineraryEvent = {
   titleEn: string;
   placeEs?: string;
   placeEn?: string;
+  noteEs?: string;
+  noteEn?: string;
   image: string;
   optional?: boolean;
   /** Shown as “Opcional gratis” instead of “Opcional”. */
@@ -69,6 +71,8 @@ export const itinerary: ItineraryDay[] = [
         time: "10:15 a. m.",
         titleEs: "Llegada a Bohemia Beach y posadas",
         titleEn: "Arrival at Bohemia Beach and lodges",
+        noteEs: "Entrega de habitaciones y check-in oficial — 3:00 p. m.",
+        noteEn: "Room handover and official check-in — 3:00 p.m.",
         image: assetUrl("/images/itinerary/llegada.png?v=5"),
       },
       {
@@ -112,7 +116,7 @@ export const itinerary: ItineraryDay[] = [
     dateLabelEn: "Saturday, March 20",
     titleEs: "Matrimonio Maru & Fer ❤️",
     titleEn: "Wedding Maru & Fer ❤️",
-    time: "4:30 p. m.",
+    time: "3:30 p. m.",
     photo: assetUrl("/images/gallery/civil.jpeg"),
     photoPosition: "center 28%",
     dressEs: "Formal playa",
@@ -136,7 +140,7 @@ export const itinerary: ItineraryDay[] = [
         signup: true,
       },
       {
-        time: "4:45 p. m.",
+        time: "3:30 p. m.",
         titleEs: "Ceremonia de matrimonio",
         titleEn: "Wedding ceremony",
         placeEs: "Playa Bohemia Beach",
@@ -145,19 +149,19 @@ export const itinerary: ItineraryDay[] = [
         dresscode: true,
       },
       {
-        time: "6:00 p. m.",
+        time: "5:00 p. m.",
         titleEs: "Cóctel",
         titleEn: "Cocktail hour",
         image: assetUrl("/images/itinerary/tragos.png?v=4"),
       },
       {
-        time: "7:00 p. m.",
+        time: "6:00 p. m.",
         titleEs: "Recepción",
         titleEn: "Reception",
         image: assetUrl("/images/itinerary/cena.png"),
       },
       {
-        time: "9:00 p. m.",
+        time: "8:00 p. m.",
         titleEs: "Comienza la fiesta",
         titleEn: "The party starts",
         image: assetUrl("/images/itinerary/fiesta.png?v=4"),
@@ -186,6 +190,8 @@ export const itinerary: ItineraryDay[] = [
         time: "10:00 a. m.",
         titleEs: "Checkout",
         titleEn: "Checkout",
+        noteEs: "Check-out Bohemia 11:00 a. m., resto de posadas confirmar con su reserva",
+        noteEn: "Bohemia check-out 11:00 a.m. For the other lodges, confirm the time with your reservation",
         image: assetUrl("/images/itinerary/checkout.png"),
       },
       {
