@@ -15,6 +15,12 @@ import { Rsvp, RsvpEntry } from "./pages/Rsvp";
 import { Story } from "./pages/Story";
 import { Travel } from "./pages/Travel";
 import { Venue } from "./pages/Venue";
+import { RemoteCover } from "./pages/remote/RemoteCover";
+import { RemoteHome } from "./pages/remote/RemoteHome";
+import { RemoteLayout } from "./pages/remote/RemoteLayout";
+import { RemoteLive } from "./pages/remote/RemoteLive";
+import { RemoteShell } from "./pages/remote/RemoteShell";
+import { RequireRemoteOpened } from "./pages/remote/RequireRemoteOpened";
 
 function LegacyInviteRedirect() {
   const params = useParams();
@@ -81,6 +87,15 @@ export function App() {
               </Route>
             </Route>
             <Route path="/invite/:legacyCode/*" element={<LegacyInviteRedirect />} />
+            <Route path="/lejos" element={<RemoteShell />}>
+              <Route index element={<RemoteCover />} />
+              <Route element={<RequireRemoteOpened />}>
+                <Route element={<RemoteLayout />}>
+                  <Route path="home" element={<RemoteHome />} />
+                  <Route path="en-vivo" element={<RemoteLive />} />
+                </Route>
+              </Route>
+            </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
