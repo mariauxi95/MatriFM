@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { gifts } from "../../data/gifts";
 import { formatCop } from "../../data/tours";
 import { formatMoney } from "../../lib/money";
@@ -23,7 +23,7 @@ import {
   type AdminMember,
   type AgeGroup,
 } from "../../lib/sheets";
-import { AdminReply } from "./AdminReply";
+import { AdminReply, type ReplyApi } from "./AdminReply";
 import type { DeskHousehold } from "./model";
 import { AGE_OPTIONS, paymentMethodLabel } from "./model";
 
@@ -54,6 +54,30 @@ function explain(error: unknown) {
 }
 
 type PersonDraft = AdminMember & { pending: boolean };
+
+function startingDraft(household: AdminHousehold): AdminHousehold {
+  return { ...household, guestLimit: Math.max(household.guestLimit, household.members.length, 1) };
+}
+
+// What the form would save, ignoring the random ids of blank slots, to tell if anything changed.
+function panelKey(draft: AdminHousehold, people: PersonDraft[]) {
+  return JSON.stringify({
+    displayName: draft.displayName,
+    guestLimit: draft.guestLimit,
+    hasChildren: draft.hasChildren,
+    childrenLimit: draft.childrenLimit,
+    side: draft.side,
+    kind: draft.kind,
+    people: people.slice(0, Math.max(1, draft.guestLimit)).map((person) => ({
+      id: person.pending ? "" : person.id,
+      fullName: person.fullName,
+      email: person.email,
+      phone: person.phone,
+      ageGroup: person.ageGroup,
+      isPrimary: person.isPrimary,
+    })),
+  });
+}
 
 function blankPerson(): PersonDraft {
   return { id: `new-${crypto.randomUUID()}`, fullName: "", email: "", phone: "", ageGroup: "adult", isPrimary: false, pending: true };
@@ -126,22 +150,60 @@ export function AdminPanel({
   onSaved: () => Promise<void>;
   onOpen: (householdId: string) => void;
 }) {
-  const [draft, setDraft] = useState<AdminHousehold>(() => ({
-    ...row.household,
-    guestLimit: Math.max(row.household.guestLimit, row.household.members.length, 1),
-  }));
+  const [draft, setDraft] = useState<AdminHousehold>(() => startingDraft(row.household));
   const [people, setPeople] = useState<PersonDraft[]>(() => peopleFrom(row.household));
   const [moveTo, setMoveTo] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+  const [replyDirty, setReplyDirty] = useState(false);
+  const replyApi = useRef<ReplyApi | null>(null);
+  const onReplyDirty = useCallback((dirty: boolean) => setReplyDirty(dirty), []);
 
   useEffect(() => {
-    const limit = Math.max(row.household.guestLimit, row.household.members.length, 1);
-    setDraft({ ...row.household, guestLimit: limit });
+    setDraft(startingDraft(row.household));
     setPeople(peopleFrom(row.household));
     setError("");
   }, [row.household]);
+
+  const startingKey = useMemo(
+    () => panelKey(startingDraft(row.household), peopleFrom(row.household)),
+    [row.household],
+  );
+  const panelDirty = panelKey(draft, people) !== startingKey;
+  const dirty = panelDirty || replyDirty;
+
+  function discard() {
+    setDraft(startingDraft(row.household));
+    setPeople(peopleFrom(row.household));
+    replyApi.current?.reset();
+    setError("");
+    setNotice("");
+  }
+
+  function close() {
+    if (dirty && !window.confirm("Hay cambios sin guardar. ¿Descartarlos?")) return;
+    onClose();
+  }
+
+  // One Save for the whole panel: guests first, then the reply, each only if it changed.
+  async function saveEverything() {
+    const reply = replyDirty ? (replyApi.current?.prepare() ?? null) : null;
+    if (replyDirty && !reply) return;
+    await run(async () => {
+      if (panelDirty) await saveAll();
+      if (reply) {
+        await adminSaveRsvp({
+          householdId: row.household.id,
+          status: reply.status,
+          people: reply.people,
+          children: reply.children,
+          danceSong: reply.danceSong,
+          message: reply.message,
+        });
+      }
+    });
+  }
 
   function patchMember(id: string, patch: Partial<PersonDraft>) {
     setPeople((current) => current.map((member) => (member.id === id ? { ...member, ...patch } : member)));
@@ -247,7 +309,7 @@ export function AdminPanel({
         <div>
           <h2>{draft.displayName}</h2>
         </div>
-        <button className="admin-icon" type="button" onClick={onClose} aria-label="Cerrar">
+        <button className="admin-icon" type="button" onClick={close} aria-label="Cerrar">
           ×
         </button>
       </header>
@@ -256,7 +318,7 @@ export function AdminPanel({
         className="admin-panel-body"
         onSubmit={(event) => {
           event.preventDefault();
-          void run(saveAll);
+          if (dirty) void saveEverything();
         }}
       >
         <label className="admin-field">
@@ -420,18 +482,8 @@ export function AdminPanel({
         <AdminReply
           row={row}
           busy={busy}
-          onSave={(reply) =>
-            run(async () => {
-              await adminSaveRsvp({
-                householdId: row.household.id,
-                status: reply.status,
-                people: reply.people,
-                children: reply.children,
-                danceSong: reply.danceSong,
-                message: reply.message,
-              });
-            })
-          }
+          api={replyApi}
+          onDirtyChange={onReplyDirty}
           onClear={() => run(() => adminClearRsvp(row.household.id))}
         />
 
@@ -479,14 +531,9 @@ export function AdminPanel({
           </div>
         ))}
 
-        {error ? <p className="admin-error">{error}</p> : null}
-        {notice ? <p className="admin-notice">{notice}</p> : null}
-        <div className="admin-panel-footer">
-          <button className="admin-btn" type="submit" disabled={busy}>
-            Guardar
-          </button>
+        <div className="admin-danger-zone">
           <button
-            className="admin-btn admin-btn-danger"
+            className="admin-link-danger"
             type="button"
             disabled={busy}
             onClick={() => {
@@ -497,8 +544,23 @@ export function AdminPanel({
               });
             }}
           >
-            Eliminar invitación
+            Eliminar invitación…
           </button>
+        </div>
+
+        {error ? <p className="admin-error">{error}</p> : null}
+        <div className="admin-panel-footer">
+          <span className={`admin-save-state${dirty && !busy ? " is-dirty" : ""}`} role="status" aria-live="polite">
+            {busy ? "Guardando…" : dirty ? "Cambios sin guardar" : notice ? `${notice} ✓` : ""}
+          </span>
+          <div className="admin-panel-footer-actions">
+            <button className="admin-btn admin-btn-ghost" type="button" disabled={!dirty || busy} onClick={discard}>
+              Descartar
+            </button>
+            <button className="admin-btn" type="submit" disabled={!dirty || busy}>
+              {busy ? "Guardando…" : "Guardar cambios"}
+            </button>
+          </div>
         </div>
       </form>
     </aside>
