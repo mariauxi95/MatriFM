@@ -10,6 +10,7 @@ import {
   adminRemoveMember,
   adminSaveRsvp,
   adminClearRsvp,
+  adminSetMemberPhone,
   adminSetPrimary,
   adminSplitMember,
   adminTourStatus,
@@ -36,6 +37,10 @@ function explain(error: unknown) {
   }
   if (message.includes("email_required")) return "Esa persona ya entró. Puedes cambiar el correo, pero no dejarlo vacío.";
   if (message.includes("bad_email")) return "Escribe un email válido.";
+  if (message.includes("bad_phone")) return "Escribe un teléfono con código de país (7 a 15 dígitos).";
+  if (message.includes("admin_set_member_phone")) {
+    return "La base de datos todavía no guarda teléfonos. Aplica la migración nueva en Supabase.";
+  }
   if (message.includes("name_required")) return "El nombre no puede quedar vacío.";
   if (message.includes("admin_clear_rsvp")) {
     return "La base de datos todavía no puede borrar respuestas. Aplica la migración nueva en Supabase.";
@@ -51,7 +56,7 @@ function explain(error: unknown) {
 type PersonDraft = AdminMember & { pending: boolean };
 
 function blankPerson(): PersonDraft {
-  return { id: `new-${crypto.randomUUID()}`, fullName: "", email: "", ageGroup: "adult", isPrimary: false, pending: true };
+  return { id: `new-${crypto.randomUUID()}`, fullName: "", email: "", phone: "", ageGroup: "adult", isPrimary: false, pending: true };
 }
 
 function StarIcon({ filled }: { filled: boolean }) {
@@ -205,6 +210,7 @@ export function AdminPanel({
       if (member.pending) {
         if (!member.fullName.trim()) continue;
         const id = await adminAddMember(draft.id, member.fullName, member.email.trim(), member.ageGroup);
+        if (member.phone.trim()) await adminSetMemberPhone(id, member.phone);
         if (member.isPrimary) createdPrimary = id;
         continue;
       }
@@ -212,13 +218,13 @@ export function AdminPanel({
       if (!previous) continue;
       const email = member.email.trim();
       if (
-        previous.fullName === member.fullName &&
-        previous.email.trim().toLowerCase() === email.toLowerCase() &&
-        previous.ageGroup === member.ageGroup
+        previous.fullName !== member.fullName ||
+        previous.email.trim().toLowerCase() !== email.toLowerCase() ||
+        previous.ageGroup !== member.ageGroup
       ) {
-        continue;
+        await adminUpdateMember({ ...member, email });
       }
-      await adminUpdateMember({ ...member, email });
+      if (previous.phone !== member.phone.trim()) await adminSetMemberPhone(member.id, member.phone);
     }
 
     const starred = kept.find((member) => member.isPrimary && !member.pending);
@@ -340,6 +346,17 @@ export function AdminPanel({
                 value={member.email}
                 placeholder="opcional"
                 onChange={(event) => patchMember(member.id, { email: event.target.value })}
+              />
+            </label>
+            <label className="admin-field">
+              <span>Teléfono</span>
+              <input
+                type="tel"
+                inputMode="tel"
+                autoComplete="off"
+                value={member.phone}
+                placeholder="opcional, con código de país"
+                onChange={(event) => patchMember(member.id, { phone: event.target.value })}
               />
             </label>
             <AgeSwitch value={member.ageGroup} onChange={(ageGroup) => patchMember(member.id, { ageGroup })} />
