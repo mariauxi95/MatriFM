@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState, type MutableRefObject } from "react";
 import {
   choiceFromEvents,
   choiceFromTransport,
@@ -16,6 +16,25 @@ import type { DietaryNeed, FoodMain, FoodSide, RsvpChild, RsvpPerson } from "../
 import type { DeskHousehold } from "./model";
 
 export type ReplyStatus = "waiting" | "coming" | "declined";
+
+export type ReplyInput = {
+  status: ReplyStatus;
+  people: RsvpPerson[];
+  children: RsvpChild[];
+  danceSong: string;
+  message: string;
+};
+
+// The panel's single Save button drives this section through a handle, so there is one primary action.
+export type ReplyApi = {
+  prepare: () => ReplyInput | null;
+  reset: () => void;
+};
+
+// Blank rows get a fresh random id each time, so ids are ignored when checking for changes.
+function replyKey(status: ReplyStatus, people: RsvpPerson[], children: RsvpChild[]) {
+  return JSON.stringify({ status, people, children }, (key, value) => (key === "id" ? undefined : value));
+}
 
 const MAINS: { id: FoodMain; label: string }[] = [
   { id: "meat", label: "Carne" },
@@ -71,18 +90,14 @@ function peopleOf(row: DeskHousehold): RsvpPerson[] {
 export function AdminReply({
   row,
   busy,
-  onSave,
+  api,
+  onDirtyChange,
   onClear,
 }: {
   row: DeskHousehold;
   busy: boolean;
-  onSave: (input: {
-    status: ReplyStatus;
-    people: RsvpPerson[];
-    children: RsvpChild[];
-    danceSong: string;
-    message: string;
-  }) => Promise<void>;
+  api: MutableRefObject<ReplyApi | null>;
+  onDirtyChange: (dirty: boolean) => void;
   onClear: () => Promise<void>;
 }) {
   const [status, setStatus] = useState<ReplyStatus>(() => statusOf(row));
@@ -97,6 +112,15 @@ export function AdminReply({
     setError("");
   }, [row]);
 
+  const initialKey = useMemo(
+    () => replyKey(statusOf(row), peopleOf(row), row.rsvp?.children ?? []),
+    [row],
+  );
+  const dirty = replyKey(status, people, children) !== initialKey;
+  useEffect(() => {
+    onDirtyChange(dirty);
+  }, [dirty, onDirtyChange]);
+
   const plan = choiceFromEvents(people[0]?.events ?? { welcomeDinner: true, weddingDay: true }) ?? "both";
   const bus = choiceFromTransport(people[0]?.transportation ?? { outbound: false, return: false });
 
@@ -108,28 +132,40 @@ export function AdminReply({
     setPeople((current) => current.map((person, i) => (i === index ? { ...person, ...patch } : person)));
   }
 
-  async function save() {
+  function prepare(): ReplyInput | null {
     const named = people
       .map((person) => ({ ...person, name: person.name.trim() }))
       .filter((person) => person.name);
     if (status === "waiting" && !row.rsvp) {
       setError("");
-      return;
+      return null;
     }
     if (status === "coming" && named.length === 0) {
       setError("Escribe al menos el nombre de quien viene.");
-      return;
+      return null;
     }
     const kept = named.length ? named : people;
     setError("");
-    await onSave({
+    return {
       status,
       people: kept,
       children: children.filter((child) => child.name.trim() || child.allergiesOrSpecialMeal.trim() || child.age != null),
       danceSong: kept.map((person) => person.note?.trim() ?? "").filter(Boolean).join(" · "),
       message: row.rsvp?.message ?? "",
-    });
+    };
   }
+
+  function reset() {
+    setStatus(statusOf(row));
+    setPeople(peopleOf(row));
+    setChildren(row.rsvp?.children ?? []);
+    setError("");
+  }
+
+  // Keep the handle pointed at the latest state so the panel's Save always sees current values.
+  useEffect(() => {
+    api.current = { prepare, reset };
+  });
 
   return (
     <section
@@ -347,13 +383,10 @@ export function AdminReply({
       ) : null}
 
       {error ? <p className="admin-error">{error}</p> : null}
-      <div className="admin-reply-actions">
-        <button className="admin-btn" type="button" disabled={busy} onClick={() => void save()}>
-          Guardar respuesta
-        </button>
-        {row.rsvp ? (
+      {row.rsvp ? (
+        <div className="admin-reply-actions">
           <button
-            className="admin-btn admin-btn-danger"
+            className="admin-link-danger"
             type="button"
             disabled={busy}
             onClick={() => {
@@ -364,8 +397,8 @@ export function AdminReply({
           >
             Borrar respuesta
           </button>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
     </section>
   );
 }
