@@ -37,6 +37,7 @@ export type AdminMember = {
   id: string;
   fullName: string;
   email: string;
+  phone: string;
   ageGroup: AgeGroup;
   isPrimary: boolean;
 };
@@ -637,7 +638,7 @@ type HouseholdRow = {
   teen_count: number | null;
   child_count: number | null;
   invite_sent_at: string | null;
-  members: { id: string; full_name: string; email: string | null; age_group: string | null; is_primary: boolean | null }[] | null;
+  members: { id: string; full_name: string; email: string | null; phone: string | null; age_group: string | null; is_primary: boolean | null }[] | null;
 };
 
 function asAge(value: string | null | undefined): AgeGroup {
@@ -649,7 +650,7 @@ export async function adminListHouseholds(): Promise<AdminHousehold[]> {
   const { data, error } = await supabase
     .from("households")
     .select(
-      "id, legacy_code, display_name, guest_limit, has_children, children_limit, side, kind, phone, origin_city, lodging, extend_trip, std_attending, std_sent_at, companion_count, teen_count, child_count, invite_sent_at, members(id, full_name, email, age_group, is_primary)",
+      "id, legacy_code, display_name, guest_limit, has_children, children_limit, side, kind, phone, origin_city, lodging, extend_trip, std_attending, std_sent_at, companion_count, teen_count, child_count, invite_sent_at, members(id, full_name, email, phone, age_group, is_primary)",
     )
     .order("legacy_code");
   fail(error);
@@ -677,6 +678,7 @@ export async function adminListHouseholds(): Promise<AdminHousehold[]> {
         id: member.id,
         fullName: member.full_name,
         email: member.email ?? "",
+        phone: member.phone ?? "",
         ageGroup: asAge(member.age_group),
         isPrimary: Boolean(member.is_primary),
       }))
@@ -735,6 +737,11 @@ export async function adminUpdateMember(member: AdminMember) {
     p_email: member.email,
     p_age_group: member.ageGroup,
   });
+  fail(error);
+}
+
+export async function adminSetMemberPhone(memberId: string, phone: string) {
+  const { error } = await supabase.rpc("admin_set_member_phone", { p_id: memberId, p_phone: phone });
   fail(error);
 }
 

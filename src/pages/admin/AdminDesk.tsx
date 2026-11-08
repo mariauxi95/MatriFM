@@ -356,6 +356,7 @@ export function AdminDesk({
                     </button>
                   </th>
                   <th>Email</th>
+                  <th>Teléfono</th>
                   <th>Invitación</th>
                   <th className="admin-hotel-col">Hotel</th>
                   <th className="is-reply">Respuesta</th>
@@ -633,7 +634,7 @@ function HouseholdRows({
   const { household } = row;
   const guests = deskGuests(row);
   const span = guests.length;
-  const columns = 12 + TOUR_COLUMNS.length + ACTIVITY_COLUMNS.length;
+  const columns = 13 + TOUR_COLUMNS.length + ACTIVITY_COLUMNS.length;
   const coming = Boolean(row.rsvp?.attending);
   const plan = coming ? planLabel(row.rsvp?.people ?? []) : "—";
   const bus = coming ? busLabel(row.rsvp?.people ?? []) : "—";
@@ -664,6 +665,15 @@ function HouseholdRows({
                 </button>
               </td>
               <td>{guest.email ? guest.email : <em>sin email</em>}</td>
+              <td>
+                {guest.phone ? (
+                  <a href={`https://wa.me/${guest.phone}`} target="_blank" rel="noreferrer">
+                    +{guest.phone}
+                  </a>
+                ) : guest.openSeat ? null : (
+                  <em>sin teléfono</em>
+                )}
+              </td>
               {index === 0 ? (
                 <>
                   <td className="admin-span" rowSpan={span}>

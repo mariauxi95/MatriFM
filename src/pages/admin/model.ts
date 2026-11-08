@@ -207,6 +207,7 @@ export type DeskGuest = {
   id: string;
   fullName: string;
   email: string;
+  phone: string;
   openSeat: boolean;
   ageGroup: AgeGroup | null;
   isPrimary: boolean;
@@ -217,6 +218,7 @@ export function deskGuests(row: DeskHousehold): DeskGuest[] {
     id: member.id,
     fullName: member.fullName,
     email: member.email,
+    phone: member.phone,
     openSeat: false,
     ageGroup: member.ageGroup,
     isPrimary: member.isPrimary,
@@ -227,7 +229,7 @@ export function deskGuests(row: DeskHousehold): DeskGuest[] {
     row.rsvp.people.forEach((person, index) => {
       const name = person.name.trim();
       if (!name || claimed(name)) return;
-      guests.push({ id: `rsvp-${row.household.id}-${index}`, fullName: name, email: "", openSeat: true, ageGroup: null, isPrimary: false });
+      guests.push({ id: `rsvp-${row.household.id}-${index}`, fullName: name, email: "", phone: "", openSeat: true, ageGroup: null, isPrimary: false });
     });
   }
 
@@ -239,13 +241,13 @@ export function deskGuests(row: DeskHousehold): DeskGuest[] {
   if (namedPair.length > 1) {
     for (const name of namedPair) {
       if (claimed(name) || guests.length >= limit) continue;
-      guests.push({ id: `seat-${row.household.id}-${fold(name)}`, fullName: name, email: "", openSeat: true, ageGroup: null, isPrimary: false });
+      guests.push({ id: `seat-${row.household.id}-${fold(name)}`, fullName: name, email: "", phone: "", openSeat: true, ageGroup: null, isPrimary: false });
     }
   }
 
   let seat = 1;
   while (guests.length < row.household.guestLimit) {
-    guests.push({ id: `seat-${row.household.id}-${seat}`, fullName: "Cupo libre", email: "", openSeat: true, ageGroup: null, isPrimary: false });
+    guests.push({ id: `seat-${row.household.id}-${seat}`, fullName: "Cupo libre", email: "", phone: "", openSeat: true, ageGroup: null, isPrimary: false });
     seat += 1;
   }
   return guests;
@@ -258,7 +260,7 @@ export function matchesQuery(row: DeskHousehold, query: string) {
   const haystack = [
     row.household.displayName,
     row.household.legacyCode,
-    ...deskGuests(row).flatMap((guest) => [guest.fullName, guest.email]),
+    ...deskGuests(row).flatMap((guest) => [guest.fullName, guest.email, guest.phone]),
     ...people,
   ]
     .join(" ")
@@ -447,6 +449,7 @@ export const EXPORT_HEADERS = [
   "Código",
   "Persona",
   "Email",
+  "Teléfono",
   "Edad",
   "Lado",
   "Tipo",
@@ -478,6 +481,7 @@ export function guestExportRow(input: {
     row.household.legacyCode,
     guest.fullName,
     guest.email,
+    guest.phone,
     guest.ageGroup ? ageLabel(guest.ageGroup) : "",
     sideLabel(row.household.side),
     kindLabel(row.household.kind),
