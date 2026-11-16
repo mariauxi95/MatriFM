@@ -4,15 +4,20 @@ import type { Session } from "@supabase/supabase-js";
 import type { Guest } from "../types";
 import { fetchStaffRole, loadCurrentGuest, type StaffRole } from "../lib/auth";
 import { fetchRsvp } from "../lib/sheets";
+import { PREVIEW_GUEST, setPreviewActive } from "../lib/preview";
 import { supabase } from "../lib/supabase";
 
 const OPENED = "fm-opened";
+const PREVIEW = "fm-preview";
 
 type GuestContextValue = {
   guest: Guest | null;
   ready: boolean;
   isAdmin: boolean;
   isPlanner: boolean;
+  /** The planner is walking through the guest site as a made-up invitation; nothing is saved. */
+  preview: boolean;
+  startPreview: () => void;
   opened: boolean;
   hasReply: boolean;
   replyReady: boolean;
@@ -24,8 +29,9 @@ type GuestContextValue = {
 const GuestContext = createContext<GuestContextValue | null>(null);
 
 export function GuestProvider({ children }: { children: ReactNode }) {
-  const [guest, setGuest] = useState<Guest | null>(null);
+  const [realGuest, setGuest] = useState<Guest | null>(null);
   const [staffRole, setStaffRole] = useState<StaffRole>(null);
+  const [previewFlag, setPreviewFlag] = useState(() => sessionStorage.getItem(PREVIEW) === "1");
   const [ready, setReady] = useState(false);
   const [opened, setOpened] = useState(() => sessionStorage.getItem(OPENED) === "1");
   const [hasReply, setHasReply] = useState(false);
@@ -74,6 +80,12 @@ export function GuestProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // Only the planner, and only when she asked for it, sees the sample invitation. The flag is
+  // set while rendering so that the pages below read the right mode when their effects run.
+  const preview = staffRole === "planner" && !realGuest && previewFlag;
+  setPreviewActive(preview);
+  const guest = realGuest ?? (preview ? PREVIEW_GUEST : null);
+
   useEffect(() => {
     if (!guest) return;
     let alive = true;
@@ -99,6 +111,11 @@ export function GuestProvider({ children }: { children: ReactNode }) {
       ready,
       isAdmin: staffRole === "admin",
       isPlanner: staffRole === "planner",
+      preview,
+      startPreview: () => {
+        sessionStorage.setItem(PREVIEW, "1");
+        setPreviewFlag(true);
+      },
       opened,
       hasReply,
       replyReady,
@@ -108,13 +125,15 @@ export function GuestProvider({ children }: { children: ReactNode }) {
         setOpened(true);
       },
       signOut: async () => {
+        sessionStorage.removeItem(PREVIEW);
+        setPreviewFlag(false);
         sessionStorage.removeItem(OPENED);
         sessionStorage.removeItem("fm-guest");
         setOpened(false);
         await supabase.auth.signOut();
       },
     }),
-    [guest, ready, staffRole, opened, hasReply, replyReady],
+    [guest, ready, staffRole, preview, opened, hasReply, replyReady],
   );
 
   return <GuestContext.Provider value={value}>{children}</GuestContext.Provider>;
