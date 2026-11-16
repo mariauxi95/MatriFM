@@ -1,6 +1,6 @@
 import { clubHosts } from "../data/club";
 import { gifts as giftSeed } from "../data/gifts";
-import { defaultSettings, toUsd } from "./money";
+import { defaultSettings, giftUsd, rateFor } from "./money";
 import { parsePlans } from "./plans";
 import { supabase } from "./supabase";
 import type {
@@ -350,15 +350,9 @@ export async function submitContribution(
   input: Omit<Contribution, "id" | "createdAt" | "status" | "amountUsdNormalized" | "fxRateUsed">,
 ) {
   const settings = await fetchSettings();
-  const amountUsdNormalized = toUsd(input.amountOriginal, input.currencyOriginal, settings);
-  const fxRateUsed =
-    input.currencyOriginal === "CLP"
-      ? settings.usdToClp
-      : input.currencyOriginal === "CAD"
-        ? settings.usdToCad
-        : input.currencyOriginal === "EUR"
-          ? settings.usdToEur
-          : 1;
+  // The database recomputes both values (gift_usd_value), so these only keep the two sides in step.
+  const amountUsdNormalized = giftUsd(input.amountOriginal, input.currencyOriginal, settings);
+  const fxRateUsed = rateFor(input.currencyOriginal, settings);
   const household = await householdId();
   const { data, error } = await supabase
     .from("contributions")
