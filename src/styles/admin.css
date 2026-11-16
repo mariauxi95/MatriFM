@@ -1808,58 +1808,119 @@ button.admin-widget {
   min-width: 132px;
 }
 
-.admin-reminder-when {
-  display: block;
-  font-size: 13px;
-}
 
-.admin-reminder-btn {
-  margin-top: 4px;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--ad-muted);
-  font: inherit;
-  font-size: 12px;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  cursor: pointer;
-}
 
-.admin-reminder-btn:hover:not(:disabled) {
-  color: var(--ad-ink);
-}
 
-.admin-reminder-btn:disabled {
-  cursor: default;
-  text-decoration: none;
-}
 
 span.admin-sticker {
   display: inline-block;
 }
 
-.admin-reminder-actions,
-.admin-reminder-pick {
+
+
+
+.admin-reminder-line {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 2px 10px;
-  margin-top: 4px;
+  gap: 8px;
+  white-space: nowrap;
 }
 
-.admin-reminder-actions .admin-reminder-btn,
-.admin-reminder-pick .admin-reminder-btn {
-  margin-top: 0;
+.admin-reminder-when {
+  font-size: 13px;
 }
 
-.admin-reminder-pick input[type="date"] {
-  height: 26px;
-  padding: 0 6px;
+.admin-reminder-when.is-empty {
+  color: var(--ad-muted);
+}
+
+.admin-reminder-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: none;
+  color: var(--ad-muted);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.admin-reminder-icon:hover:not(:disabled),
+.admin-reminder-icon.is-open {
+  border-color: var(--ad-line-strong);
+  background: #fff;
+  color: var(--ad-ink);
+}
+
+.admin-reminder-icon:focus-visible {
+  outline: 2px solid var(--ad-ink);
+  outline-offset: 1px;
+}
+
+.admin-reminder-icon:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.admin-reminder-pop {
+  position: fixed;
+  z-index: 30;
+  display: grid;
+  gap: 10px;
+  width: 232px;
+  box-sizing: border-box;
+  padding: 12px;
+  border: 1px solid var(--ad-line);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 12px 32px rgba(24, 24, 27, 0.16);
+  white-space: normal;
+}
+
+.admin-reminder-pop label {
+  display: grid;
+  gap: 6px;
+}
+
+.admin-reminder-pop label span {
+  color: var(--ad-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.admin-reminder-pop input[type="date"] {
+  height: 34px;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0 8px;
   border: 1px solid var(--ad-line-strong);
-  border-radius: 6px;
+  border-radius: 8px;
   background: #fff;
   color: var(--ad-ink);
   font: inherit;
-  font-size: 12px;
+  font-size: 13px;
+}
+
+/* The household rows restyle every button inside them, so the pop-up button is spelled out. */
+.admin-household .admin-reminder-pop button.admin-btn {
+  display: block;
+  width: 100%;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid #18181b;
+  border-radius: 8px;
+  background: #18181b;
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.admin-household .admin-reminder-pop button.admin-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }

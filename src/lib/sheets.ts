@@ -793,11 +793,6 @@ export async function adminLogReminder(householdIds: string[], at?: string) {
   fail(error);
 }
 
-export async function adminClearReminder(householdIds: string[]) {
-  const { error } = await supabase.rpc("admin_clear_reminder", { p_household_ids: householdIds });
-  fail(error);
-}
-
 export async function adminUpdateHousehold(household: AdminHousehold) {
   const { error } = await supabase.rpc("admin_update_household", {
     p_id: household.id,
