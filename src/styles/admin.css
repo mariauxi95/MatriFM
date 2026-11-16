@@ -1934,3 +1934,14 @@ span.admin-sticker {
   background: var(--ad-line-strong);
   vertical-align: middle;
 }
+
+.admin-reminder-text {
+  display: grid;
+  gap: 1px;
+  line-height: 1.3;
+}
+
+.admin-reminder-by {
+  color: var(--ad-muted);
+  font-size: 12px;
+}

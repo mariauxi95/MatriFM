@@ -35,7 +35,7 @@ import {
   sortName,
   planLabel,
   replyLabel,
-  reminderLabel,
+  reminderWhen,
   rsvpPersonFor,
   TOUR_COLUMNS,
   tourCell,
@@ -919,7 +919,10 @@ function ReminderCell({
 
   return (
     <div className="admin-reminder-line">
-      <span className={`admin-reminder-when${at ? "" : " is-empty"}`}>{reminderLabel(at, by)}</span>
+      <span className="admin-reminder-text">
+        <span className={`admin-reminder-when${at ? "" : " is-empty"}`}>{reminderWhen(at)}</span>
+        {at && by ? <span className="admin-reminder-by">{by}</span> : null}
+      </span>
       <button
         ref={trigger}
         type="button"
