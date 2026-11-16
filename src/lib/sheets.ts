@@ -2,6 +2,7 @@ import { clubHosts } from "../data/club";
 import { gifts as giftSeed } from "../data/gifts";
 import { defaultSettings, giftUsd, rateFor } from "./money";
 import { parsePlans } from "./plans";
+import { isPreview, PREVIEW_GUEST, PREVIEW_MEMBERS, previewNotice, previewStore } from "./preview";
 import { supabase } from "./supabase";
 import type {
   ClubMessage,
@@ -279,6 +280,9 @@ function settingsPayload(settings: PaymentSettings): SettingsRow {
 }
 
 export async function fetchMyMembers() {
+  if (isPreview()) {
+    return PREVIEW_MEMBERS.map(({ fullName, ageGroup, isPrimary }) => ({ fullName, ageGroup, isPrimary }));
+  }
   const id = await householdId();
   if (!id) return [];
   const { data, error } = await supabase
@@ -296,6 +300,7 @@ export async function fetchMyMembers() {
 }
 
 export async function fetchRsvp(): Promise<RsvpRecord | null> {
+  if (isPreview()) return previewStore.rsvp;
   const id = await householdId();
   if (!id) return null;
   const { data, error } = await supabase.from("rsvps").select("*").eq("household_id", id).maybeSingle();
@@ -304,6 +309,11 @@ export async function fetchRsvp(): Promise<RsvpRecord | null> {
 }
 
 export async function submitRsvp(record: Omit<RsvpRecord, "id" | "createdAt">) {
+  if (isPreview()) {
+    previewNotice();
+    previewStore.rsvp = { ...record, id: "preview-rsvp", createdAt: new Date().toISOString() };
+    return previewStore.rsvp;
+  }
   const id = await requireHouseholdId();
   const { data, error } = await supabase
     .from("rsvps")
@@ -350,6 +360,19 @@ export async function submitContribution(
   input: Omit<Contribution, "id" | "createdAt" | "status" | "amountUsdNormalized" | "fxRateUsed">,
 ) {
   const settings = await fetchSettings();
+  if (isPreview()) {
+    previewNotice();
+    const sample: Contribution = {
+      ...input,
+      id: `preview-gift-${previewStore.contributions.length + 1}`,
+      amountUsdNormalized: giftUsd(input.amountOriginal, input.currencyOriginal, settings),
+      fxRateUsed: rateFor(input.currencyOriginal, settings),
+      status: "pending",
+      createdAt: new Date().toISOString(),
+    };
+    previewStore.contributions = [sample, ...previewStore.contributions];
+    return sample;
+  }
   // The database recomputes both values (gift_usd_value), so these only keep the two sides in step.
   const amountUsdNormalized = giftUsd(input.amountOriginal, input.currencyOriginal, settings);
   const fxRateUsed = rateFor(input.currencyOriginal, settings);
@@ -407,6 +430,8 @@ export async function fetchClub(): Promise<ClubMessage[]> {
 }
 
 export async function submitClub(message: Omit<ClubMessage, "id" | "createdAt">) {
+  if (isPreview()) previewNotice();
+  if (isPreview()) return { ...message, id: `preview-club-${Date.now()}`, createdAt: new Date().toISOString() };
   const household = await householdId();
   const { data, error } = await supabase
     .from("club_messages")
@@ -441,6 +466,7 @@ export async function adminListActivitySignups(): Promise<ActivitySignup[]> {
 }
 
 export async function listActivitySignups(): Promise<ActivitySignup[]> {
+  if (isPreview()) return previewStore.signups;
   const id = await householdId();
   if (!id) return [];
   const { data, error } = await supabase
@@ -455,8 +481,14 @@ export async function listActivitySignups(): Promise<ActivitySignup[]> {
 export async function submitActivitySignup(
   input: Omit<ActivitySignup, "id" | "createdAt">,
 ): Promise<ActivitySignup> {
-  const id = await requireHouseholdId();
   const quantity = Math.max(1, Math.floor(input.quantity) || 1);
+  if (isPreview()) {
+    previewNotice();
+    const sample: ActivitySignup = { ...input, quantity, id: `preview-activity-${input.activityKey}`, createdAt: new Date().toISOString() };
+    previewStore.signups = [sample, ...previewStore.signups.filter((item) => item.activityKey !== input.activityKey)];
+    return sample;
+  }
+  const id = await requireHouseholdId();
   const { data, error } = await supabase
     .from("activity_signups")
     .upsert(
@@ -479,6 +511,17 @@ export async function submitActivitySignup(
 export async function submitTourReservation(
   input: Omit<TourReservation, "id" | "registrationDate" | "paymentStatus">,
 ) {
+  if (isPreview()) {
+    previewNotice();
+    const sample: TourReservation = {
+      ...input,
+      id: `preview-tour-${input.tourId}`,
+      registrationDate: new Date().toISOString(),
+      paymentStatus: "Pendiente",
+    };
+    previewStore.tours = [sample, ...previewStore.tours.filter((item) => item.tourId !== input.tourId)];
+    return sample;
+  }
   const household = await householdId();
   const { data, error } = await supabase
     .from("tour_reservations")
@@ -504,6 +547,7 @@ export async function submitTourReservation(
 
 /** The tours already booked by the signed-in guest's invitation (anyone on it may have booked). */
 export async function fetchMyTourReservations(): Promise<TourReservation[]> {
+  if (isPreview()) return previewStore.tours;
   const household = await householdId();
   if (!household) return [];
   const { data, error } = await supabase
@@ -743,8 +787,9 @@ export async function plannerTourList() {
   };
 }
 
-export async function adminLogReminder(householdIds: string[]) {
-  const { error } = await supabase.rpc("admin_log_reminder", { p_household_ids: householdIds });
+/** Logs a reminder for these invitations: now, or at `at` (an ISO time in the past). */
+export async function adminLogReminder(householdIds: string[], at?: string) {
+  const { error } = await supabase.rpc("admin_log_reminder", { p_household_ids: householdIds, p_at: at ?? null });
   fail(error);
 }
 
@@ -889,6 +934,18 @@ export type HouseholdPassport = {
 };
 
 export async function fetchPassport(): Promise<HouseholdPassport | null> {
+  if (isPreview()) {
+    return {
+      displayName: PREVIEW_GUEST.displayName,
+      lodging: "",
+      extendTrip: "",
+      plans: previewStore.plans,
+      members: PREVIEW_MEMBERS,
+      rsvp: previewStore.rsvp,
+      contributions: previewStore.contributions,
+      tours: previewStore.tours,
+    };
+  }
   const id = await householdId();
   if (!id) return null;
   const [household, members, rsvp, contributions, tours] = await Promise.all([
@@ -943,12 +1000,21 @@ export async function fetchPassport(): Promise<HouseholdPassport | null> {
 }
 
 export async function saveMyPlans(plans: GuestPlans) {
+  if (isPreview()) {
+    previewNotice();
+    previewStore.plans = parsePlans(plans);
+    return previewStore.plans;
+  }
   const { data, error } = await supabase.rpc("save_my_plans", { p_plans: plans });
   fail(error);
   return parsePlans(data);
 }
 
 export async function saveMyMemberEmail(memberId: string, email: string) {
+  if (isPreview()) {
+    previewNotice();
+    return email.trim().toLowerCase();
+  }
   const { data, error } = await supabase.rpc("save_my_member_email", {
     p_member_id: memberId,
     p_email: email,

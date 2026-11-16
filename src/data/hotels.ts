@@ -117,8 +117,8 @@ export const hotels: Hotel[] = [
   {
     id: "gaelia",
     name: "Gaelia",
-    images: [assetUrl("/images/hotels/gaelia-1.webp"), assetUrl("/images/hotels/gaelia-2.webp")],
-    imageFallback: assetUrl("/images/hotels/gaelia-1.webp"),
+    images: [assetUrl("/images/hotels/gaelia-2.webp"), assetUrl("/images/hotels/gaelia-1.webp")],
+    imageFallback: assetUrl("/images/hotels/gaelia-2.webp"),
     lat: 11.2708,
     lng: -73.8405,
     distanceEs: "Al lado de Bohemia · Mendihuaca",

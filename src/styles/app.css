@@ -6586,3 +6586,26 @@ td {
   font-weight: 500;
   line-height: 1.45;
 }
+
+/* Planner preview: a short note shown only when she tries to save or send something */
+.preview-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 1.1rem;
+  z-index: 3000;
+  width: min(520px, calc(100% - 1.5rem));
+  padding: 0.7rem 1rem;
+  transform: translateX(-50%);
+  border-radius: 14px;
+  background: #fef3c7;
+  color: #78350f;
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+
+.preview-toast[hidden] {
+  display: none;
+}

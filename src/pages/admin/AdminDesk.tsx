@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEven
 import { Link } from "react-router-dom";
 import { hotels } from "../../data/hotels";
 import type { ActivitySignup, AdminHousehold, AdminRsvp, AdminTourReservation } from "../../lib/sheets";
-import { adminLogReminder, adminSaveSettings, adminSetInviteSent, adminSetLodging, adminUpdateHousehold } from "../../lib/sheets";
+import { adminClearReminder, adminLogReminder, adminSaveSettings, adminSetInviteSent, adminSetLodging, adminUpdateHousehold } from "../../lib/sheets";
 import type { Contribution, PaymentSettings } from "../../types";
 import { AdminGifts } from "./AdminGifts";
 import { AdminPanel, CreateHousehold } from "./AdminPanel";
@@ -69,6 +69,7 @@ export function AdminDesk({
   signups,
   settings,
   readOnly = false,
+  onPreview,
   onSettings,
   onReload,
   onSignOut,
@@ -81,6 +82,8 @@ export function AdminDesk({
   settings: PaymentSettings;
   /** The planner: no emails, no gifts, no editing. She can still log reminders. */
   readOnly?: boolean;
+  /** The planner's way into the guest site: starts the sample-invitation preview. */
+  onPreview?: () => void;
   onSettings: (settings: PaymentSettings) => void;
   onReload: () => Promise<void>;
   onSignOut: () => void;
@@ -191,18 +194,26 @@ export function AdminDesk({
     return hotelOptions.find((hotel) => hotel.id === lodging)?.name ?? "Sin hotel";
   }
 
-  const [remindingId, setRemindingId] = useState<string | "all" | null>(null);
+  const [remindingId, setRemindingId] = useState<string | null>(null);
   const [reminderError, setReminderError] = useState("");
 
-  async function logReminder(ids: string[]) {
-    if (!ids.length) return;
+  // `day` is a yyyy-mm-dd date from the picker; empty means now. Past days are saved at noon
+  // local time so the date never shifts with the time zone.
+  async function changeReminder(id: string, action: { log: string } | "clear") {
     setReminderError("");
-    setRemindingId(ids.length === 1 ? ids[0] : "all");
+    setRemindingId(id);
     try {
-      await adminLogReminder(ids);
+      if (action === "clear") {
+        await adminClearReminder([id]);
+      } else {
+        const today = new Date();
+        const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+        const at = action.log && action.log !== todayKey ? new Date(`${action.log}T12:00:00`).toISOString() : undefined;
+        await adminLogReminder([id], at);
+      }
       await onReload();
     } catch {
-      setReminderError("No se pudo registrar el recordatorio. Inténtalo de nuevo.");
+      setReminderError("No se pudo guardar el recordatorio. Inténtalo de nuevo.");
     } finally {
       setRemindingId(null);
     }
@@ -278,8 +289,8 @@ export function AdminDesk({
           </button>
         )}
         <div className="admin-nav-foot">
-          <Link className="admin-btn admin-btn-ghost" to="/invite">
-            Ver invitación
+          <Link className="admin-btn admin-btn-ghost" to="/invite" onClick={onPreview}>
+            {onPreview ? "Vista previa de la invitación" : "Ver invitación"}
           </Link>
           <button className="admin-btn admin-btn-ghost" type="button" onClick={onSignOut}>
             Salir
@@ -338,17 +349,6 @@ export function AdminDesk({
           <div className="admin-top-actions">
             <button className="admin-btn admin-btn-ghost" type="button" onClick={downloadExcel}>
               Descargar Excel
-            </button>
-            <button
-              className="admin-btn admin-btn-ghost"
-              type="button"
-              disabled={remindingId !== null || visible.length === 0}
-              onClick={() => {
-                if (!window.confirm(`Registrar un recordatorio hoy para ${visible.length} invitaciones?`)) return;
-                void logReminder(visible.map((row) => row.household.id));
-              }}
-            >
-              {remindingId === "all" ? "Registrando…" : `Registrar recordatorio (${visible.length})`}
             </button>
             <label className="admin-search">
               <span className="sr-only">Buscar</span>
@@ -429,8 +429,9 @@ export function AdminDesk({
                   key={row.household.id}
                   row={row}
                   readOnly={readOnly}
-                  reminderBusy={remindingId === row.household.id || remindingId === "all"}
-                  onLogReminder={() => void logReminder([row.household.id])}
+                  reminderBusy={remindingId === row.household.id}
+                  onLogReminder={(day) => void changeReminder(row.household.id, { log: day })}
+                  onClearReminder={() => void changeReminder(row.household.id, "clear")}
                   selected={selectedId === row.household.id}
                   inviteSent={inviteSent(row.household)}
                   inviteBusy={sendingId === row.household.id}
@@ -664,6 +665,7 @@ function HouseholdRows({
   readOnly,
   reminderBusy,
   onLogReminder,
+  onClearReminder,
   selected,
   inviteSent,
   inviteBusy,
@@ -679,7 +681,8 @@ function HouseholdRows({
   row: ReturnType<typeof buildDesk>[number];
   readOnly: boolean;
   reminderBusy: boolean;
-  onLogReminder: () => void;
+  onLogReminder: (day: string) => void;
+  onClearReminder: () => void;
   selected: boolean;
   inviteSent: boolean;
   inviteBusy: boolean;
@@ -754,10 +757,13 @@ function HouseholdRows({
                     </button>
                   </td>
                   <td className="admin-span admin-reminder" rowSpan={span}>
-                    <span className="admin-reminder-when">{reminderLabel(household.lastReminderAt, household.lastReminderBy)}</span>
-                    <button type="button" className="admin-reminder-btn" disabled={reminderBusy} onClick={onLogReminder}>
-                      {reminderBusy ? "…" : "Registrar hoy"}
-                    </button>
+                    <ReminderCell
+                      at={household.lastReminderAt}
+                      by={household.lastReminderBy}
+                      busy={reminderBusy}
+                      onLog={onLogReminder}
+                      onClear={onClearReminder}
+                    />
                   </td>
                   <td className="admin-span admin-hotel-col" rowSpan={span}>
                     <span className="admin-hotel-fit">
@@ -834,6 +840,63 @@ function HouseholdRows({
           <td colSpan={columns} />
         </tr>
       </tbody>
+    </>
+  );
+}
+
+function ReminderCell({
+  at,
+  by,
+  busy,
+  onLog,
+  onClear,
+}: {
+  at: string;
+  by: string;
+  busy: boolean;
+  onLog: (day: string) => void;
+  onClear: () => void;
+}) {
+  const [picking, setPicking] = useState(false);
+  const now = new Date();
+  const max = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+
+  return (
+    <>
+      <span className="admin-reminder-when">{reminderLabel(at, by)}</span>
+      {picking ? (
+        <span className="admin-reminder-pick">
+          <input
+            type="date"
+            max={max}
+            autoFocus
+            aria-label="Fecha del recordatorio"
+            disabled={busy}
+            onChange={(event) => {
+              if (!event.target.value) return;
+              setPicking(false);
+              onLog(event.target.value);
+            }}
+          />
+          <button type="button" className="admin-reminder-btn" onClick={() => setPicking(false)}>
+            Cancelar
+          </button>
+        </span>
+      ) : (
+        <span className="admin-reminder-actions">
+          <button type="button" className="admin-reminder-btn" disabled={busy} onClick={() => onLog("")}>
+            {busy ? "…" : "Registrar hoy"}
+          </button>
+          <button type="button" className="admin-reminder-btn" disabled={busy} onClick={() => setPicking(true)}>
+            Otra fecha
+          </button>
+          {at ? (
+            <button type="button" className="admin-reminder-btn" disabled={busy} onClick={onClear}>
+              Quitar
+            </button>
+          ) : null}
+        </span>
+      )}
     </>
   );
 }

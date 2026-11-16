@@ -21,7 +21,7 @@ import { AdminDesk } from "./admin/AdminDesk";
 import "../styles/admin.css";
 
 export function Admin() {
-  const { ready, isAdmin, isPlanner, guest, signOut } = useGuest();
+  const { ready, isAdmin, isPlanner, guest, signOut, startPreview } = useGuest();
   const staff = isAdmin || isPlanner;
   const [error, setError] = useState("");
   const [households, setHouseholds] = useState<AdminHousehold[]>([]);
@@ -99,6 +99,7 @@ export function Admin() {
       signups={signups}
       settings={settings}
       readOnly={!isAdmin}
+      onPreview={isPlanner ? startPreview : undefined}
       onSettings={setSettings}
       onReload={reload}
       onSignOut={() => void signOut()}
