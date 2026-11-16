@@ -1924,3 +1924,13 @@ span.admin-sticker {
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+/* Invitations that answered "no vienen" need no reminder: a short quiet line instead */
+.admin-reminder-na {
+  display: inline-block;
+  width: 16px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--ad-line-strong);
+  vertical-align: middle;
+}

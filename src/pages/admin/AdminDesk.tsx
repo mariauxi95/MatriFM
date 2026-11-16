@@ -748,12 +748,17 @@ function HouseholdRows({
                     </button>
                   </td>
                   <td className="admin-span admin-reminder" rowSpan={span}>
-                    <ReminderCell
-                      at={household.lastReminderAt}
-                      by={household.lastReminderBy}
-                      busy={reminderBusy}
-                      onLog={onLogReminder}
-                    />
+                    {row.reply === "declined" ? (
+                      // They already said they are not coming: nobody needs to chase them.
+                      <span className="admin-reminder-na" role="img" aria-label="No aplica: respondieron que no vienen" title="No aplica: respondieron que no vienen" />
+                    ) : (
+                      <ReminderCell
+                        at={household.lastReminderAt}
+                        by={household.lastReminderBy}
+                        busy={reminderBusy}
+                        onLog={onLogReminder}
+                      />
+                    )}
                   </td>
                   <td className="admin-span admin-hotel-col" rowSpan={span}>
                     <span className="admin-hotel-fit">
