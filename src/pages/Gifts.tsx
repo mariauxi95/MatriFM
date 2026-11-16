@@ -118,6 +118,13 @@ export function Gifts() {
                     <p>{t("giftsStep3Body")}</p>
                   </div>
                 </li>
+                <li>
+                  <span>4</span>
+                  <div>
+                    <b>{t("giftsStep4Title")}</b>
+                    <p>{t("giftsStep4Body")}</p>
+                  </div>
+                </li>
               </ol>
             </div>
             <p className="gifts-sign">{t("giftsSign")}</p>
