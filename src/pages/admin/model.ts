@@ -444,8 +444,8 @@ export function kindLabel(kind: GuestKind | null) {
   return "";
 }
 
-/** "hoy · Fer", "hace 3 días · Gera", or "—" when nobody has reached out yet. */
-export function reminderLabel(at: string, by: string, now: Date = new Date()) {
+/** "hoy", "ayer", "hace 3 días", a short date after two months, or "—" when nobody has reached out yet. */
+export function reminderWhen(at: string, now: Date = new Date()) {
   if (!at) return "—";
   const then = new Date(at);
   if (Number.isNaN(then.getTime())) return "—";
@@ -459,7 +459,13 @@ export function reminderLabel(at: string, by: string, now: Date = new Date()) {
         : days <= 60
           ? `hace ${days} días`
           : then.toLocaleDateString("es", { day: "numeric", month: "short" });
-  return by ? `${when} · ${by}` : when;
+  return when;
+}
+
+/** "hoy · Fer", "hace 3 días · Gera", or "—" when nobody has reached out yet. */
+export function reminderLabel(at: string, by: string, now: Date = new Date()) {
+  const when = reminderWhen(at, now);
+  return at && by && when !== "—" ? `${when} · ${by}` : when;
 }
 
 export const EXPORT_HEADERS = [

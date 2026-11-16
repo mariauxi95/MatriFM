@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEven
 import { Link } from "react-router-dom";
 import { hotels } from "../../data/hotels";
 import type { ActivitySignup, AdminHousehold, AdminRsvp, AdminTourReservation } from "../../lib/sheets";
-import { adminClearReminder, adminLogReminder, adminSaveSettings, adminSetInviteSent, adminSetLodging, adminUpdateHousehold } from "../../lib/sheets";
+import { adminLogReminder, adminSaveSettings, adminSetInviteSent, adminSetLodging, adminUpdateHousehold } from "../../lib/sheets";
 import type { Contribution, PaymentSettings } from "../../types";
 import { AdminGifts } from "./AdminGifts";
 import { AdminPanel, CreateHousehold } from "./AdminPanel";
@@ -35,7 +35,7 @@ import {
   sortName,
   planLabel,
   replyLabel,
-  reminderLabel,
+  reminderWhen,
   rsvpPersonFor,
   TOUR_COLUMNS,
   tourCell,
@@ -199,18 +199,12 @@ export function AdminDesk({
 
   // `day` is a yyyy-mm-dd date from the picker; empty means now. Past days are saved at noon
   // local time so the date never shifts with the time zone.
-  async function changeReminder(id: string, action: { log: string } | "clear") {
+  async function logReminder(id: string, day: string) {
     setReminderError("");
     setRemindingId(id);
     try {
-      if (action === "clear") {
-        await adminClearReminder([id]);
-      } else {
-        const today = new Date();
-        const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-        const at = action.log && action.log !== todayKey ? new Date(`${action.log}T12:00:00`).toISOString() : undefined;
-        await adminLogReminder([id], at);
-      }
+      const at = day && day !== dayKey(new Date()) ? new Date(`${day}T12:00:00`).toISOString() : undefined;
+      await adminLogReminder([id], at);
       await onReload();
     } catch {
       setReminderError("No se pudo guardar el recordatorio. Inténtalo de nuevo.");
@@ -430,8 +424,7 @@ export function AdminDesk({
                   row={row}
                   readOnly={readOnly}
                   reminderBusy={remindingId === row.household.id}
-                  onLogReminder={(day) => void changeReminder(row.household.id, { log: day })}
-                  onClearReminder={() => void changeReminder(row.household.id, "clear")}
+                  onLogReminder={(day) => void logReminder(row.household.id, day)}
                   selected={selectedId === row.household.id}
                   inviteSent={inviteSent(row.household)}
                   inviteBusy={sendingId === row.household.id}
@@ -665,7 +658,6 @@ function HouseholdRows({
   readOnly,
   reminderBusy,
   onLogReminder,
-  onClearReminder,
   selected,
   inviteSent,
   inviteBusy,
@@ -682,7 +674,6 @@ function HouseholdRows({
   readOnly: boolean;
   reminderBusy: boolean;
   onLogReminder: (day: string) => void;
-  onClearReminder: () => void;
   selected: boolean;
   inviteSent: boolean;
   inviteBusy: boolean;
@@ -757,13 +748,17 @@ function HouseholdRows({
                     </button>
                   </td>
                   <td className="admin-span admin-reminder" rowSpan={span}>
-                    <ReminderCell
-                      at={household.lastReminderAt}
-                      by={household.lastReminderBy}
-                      busy={reminderBusy}
-                      onLog={onLogReminder}
-                      onClear={onClearReminder}
-                    />
+                    {row.reply === "declined" ? (
+                      // They already said they are not coming: nobody needs to chase them.
+                      <span className="admin-reminder-na" role="img" aria-label="No aplica: respondieron que no vienen" title="No aplica: respondieron que no vienen" />
+                    ) : (
+                      <ReminderCell
+                        at={household.lastReminderAt}
+                        by={household.lastReminderBy}
+                        busy={reminderBusy}
+                        onLog={onLogReminder}
+                      />
+                    )}
                   </td>
                   <td className="admin-span admin-hotel-col" rowSpan={span}>
                     <span className="admin-hotel-fit">
@@ -844,60 +839,122 @@ function HouseholdRows({
   );
 }
 
+/** yyyy-mm-dd in local time, the format a date input uses. */
+function dayKey(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function CalendarCheckIcon() {
+  return (
+    <svg viewBox="0 0 20 20" width="16" height="16" fill="none" aria-hidden="true">
+      <rect x="3" y="4.5" width="14" height="12.5" rx="2.5" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M3 8.5h14M7 2.75v3M13 2.75v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="m7.6 12.7 1.7 1.7 3.2-3.4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+// "hace 3 días · Fer" with a calendar button. The button opens a small pop-up with the date set
+// to today; Registrar saves it. Nothing here can remove a reminder.
 function ReminderCell({
   at,
   by,
   busy,
   onLog,
-  onClear,
 }: {
   at: string;
   by: string;
   busy: boolean;
   onLog: (day: string) => void;
-  onClear: () => void;
 }) {
-  const [picking, setPicking] = useState(false);
-  const now = new Date();
-  const max = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const [open, setOpen] = useState(false);
+  const [day, setDay] = useState("");
+  const [place, setPlace] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+  const trigger = useRef<HTMLButtonElement>(null);
+  const pop = useRef<HTMLDivElement>(null);
+  const today = dayKey(new Date());
+
+  useEffect(() => {
+    if (!open) return;
+    function close(event: Event) {
+      const target = event.target as Node;
+      if (pop.current?.contains(target) || trigger.current?.contains(target)) return;
+      setOpen(false);
+    }
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpen(false);
+        trigger.current?.focus();
+      }
+    }
+    document.addEventListener("mousedown", close);
+    document.addEventListener("keydown", onKey);
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("keydown", onKey);
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("resize", close);
+    };
+  }, [open]);
+
+  function toggle() {
+    if (open) {
+      setOpen(false);
+      return;
+    }
+    const rect = trigger.current?.getBoundingClientRect();
+    if (rect) {
+      const width = 232;
+      const below = rect.bottom + 8;
+      setPlace({
+        top: below + 150 > window.innerHeight ? Math.max(8, rect.top - 150 - 8) : below,
+        left: Math.max(8, Math.min(rect.left, window.innerWidth - width - 8)),
+      });
+    }
+    setDay(today);
+    setOpen(true);
+  }
 
   return (
-    <>
-      <span className="admin-reminder-when">{reminderLabel(at, by)}</span>
-      {picking ? (
-        <span className="admin-reminder-pick">
-          <input
-            type="date"
-            max={max}
-            autoFocus
-            aria-label="Fecha del recordatorio"
-            disabled={busy}
-            onChange={(event) => {
-              if (!event.target.value) return;
-              setPicking(false);
-              onLog(event.target.value);
+    <div className="admin-reminder-line">
+      <span className="admin-reminder-text">
+        <span className={`admin-reminder-when${at ? "" : " is-empty"}`}>{reminderWhen(at)}</span>
+        {at && by ? <span className="admin-reminder-by">{by}</span> : null}
+      </span>
+      <button
+        ref={trigger}
+        type="button"
+        className={`admin-reminder-icon${open ? " is-open" : ""}`}
+        aria-label="Registrar recordatorio"
+        aria-expanded={open}
+        title="Registrar recordatorio"
+        disabled={busy}
+        onClick={toggle}
+      >
+        <CalendarCheckIcon />
+      </button>
+      {open ? (
+        <div ref={pop} className="admin-reminder-pop" role="dialog" aria-label="Registrar recordatorio" style={{ top: place.top, left: place.left }}>
+          <label>
+            <span>Fecha del recordatorio</span>
+            <input type="date" value={day} max={today} autoFocus onChange={(event) => setDay(event.target.value)} />
+          </label>
+          <button
+            type="button"
+            className="admin-btn"
+            disabled={!day}
+            onClick={() => {
+              setOpen(false);
+              onLog(day);
             }}
-          />
-          <button type="button" className="admin-reminder-btn" onClick={() => setPicking(false)}>
-            Cancelar
+          >
+            Registrar
           </button>
-        </span>
-      ) : (
-        <span className="admin-reminder-actions">
-          <button type="button" className="admin-reminder-btn" disabled={busy} onClick={() => onLog("")}>
-            {busy ? "…" : "Registrar hoy"}
-          </button>
-          <button type="button" className="admin-reminder-btn" disabled={busy} onClick={() => setPicking(true)}>
-            Otra fecha
-          </button>
-          {at ? (
-            <button type="button" className="admin-reminder-btn" disabled={busy} onClick={onClear}>
-              Quitar
-            </button>
-          ) : null}
-        </span>
-      )}
-    </>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
