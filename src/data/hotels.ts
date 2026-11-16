@@ -117,14 +117,8 @@ export const hotels: Hotel[] = [
   {
     id: "gaelia",
     name: "Gaelia",
-    images: [
-      "https://cf.bstatic.com/xdata/images/hotel/max1024x768/495615966.jpg?k=b135ead9650bf4ac8a965dca4aa96a39aeadd7df05990cbe79f2b29967dbb063&o=",
-      "https://cf.bstatic.com/xdata/images/hotel/max1024x768/575192450.jpg?k=cbe9a5190466a1c38fc3389823954b1db261b7aacde8427d5177b29b2471dbd4&o=",
-      "https://cf.bstatic.com/xdata/images/hotel/max1024x768/575191148.jpg?k=d006201c1c1e5aca526ecc148f52020b2de8cdf63df8880b707bdf29e2d95376&o=",
-      "https://cf.bstatic.com/xdata/images/hotel/max1024x768/575193109.jpg?k=af95e0feeb731fee73d4727bde677a033bbe8f41cfff90f5ca9465b72c569282&o=",
-      "https://cf.bstatic.com/xdata/images/hotel/max1024x768/575193779.jpg?k=48abacc0ce2d7af3f8b11af134e95b55cf0d674b7ba93357627081dafdf46180&o=",
-    ],
-    imageFallback: assetUrl("/images/gallery/camping.jpg"),
+    images: [assetUrl("/images/hotels/gaelia-1.webp"), assetUrl("/images/hotels/gaelia-2.webp")],
+    imageFallback: assetUrl("/images/hotels/gaelia-1.webp"),
     lat: 11.2708,
     lng: -73.8405,
     distanceEs: "Al lado de Bohemia · Mendihuaca",

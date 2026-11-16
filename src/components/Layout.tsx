@@ -16,7 +16,7 @@ const links = [
 
 export function Layout() {
   const { t } = useLang();
-  const { isAdmin, signOut, hasReply } = useGuest();
+  const { isAdmin, isPlanner, signOut, hasReply } = useGuest();
   const navigate = useNavigate();
   const location = useLocation();
   const mainRef = useRef<HTMLDivElement>(null);
@@ -77,7 +77,7 @@ export function Layout() {
             <span className="story-pill-label">{t("welcomeFilm")}</span>
           </button>
           <LangToggle />
-          {isAdmin ? (
+          {isAdmin || isPlanner ? (
             <NavLink className="btn ghost nav-cta" to="/admin" onClick={close}>
               {t("adminLink")}
             </NavLink>
@@ -137,7 +137,7 @@ export function Layout() {
             <NavLink className="btn ghost nav-cta" to="rsvp" onClick={close}>
               {t(hasReply ? "myRsvp" : "confirm")}
             </NavLink>
-            {isAdmin ? (
+            {isAdmin || isPlanner ? (
               <NavLink className="btn ghost nav-cta" to="/admin" onClick={close}>
                 {t("adminLink")}
               </NavLink>

@@ -17,9 +17,12 @@ function explain(error: unknown) {
 
 export function AdminReplies({
   desk,
+  readOnly = false,
   onReload,
 }: {
   desk: DeskHousehold[];
+  /** The planner can read replies but not delete them. */
+  readOnly?: boolean;
   onReload: () => Promise<void>;
 }) {
   const [query, setQuery] = useState("");
@@ -80,14 +83,16 @@ export function AdminReplies({
                 <td>{answeredNames(row)}</td>
                 <td>{row.rsvp?.attending ? "Vienen" : "No vienen"}</td>
                 <td>
-                  <button
-                    className="admin-btn admin-btn-danger"
-                    type="button"
-                    disabled={busyId === row.household.id}
-                    onClick={() => void clear(row)}
-                  >
-                    Borrar respuesta
-                  </button>
+                  {readOnly ? null : (
+                    <button
+                      className="admin-btn admin-btn-danger"
+                      type="button"
+                      disabled={busyId === row.household.id}
+                      onClick={() => void clear(row)}
+                    >
+                      Borrar respuesta
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

@@ -9,6 +9,8 @@ import {
   adminListRsvps,
   adminTourList,
   fetchSettings,
+  plannerListHouseholds,
+  plannerTourList,
   type ActivitySignup,
   type AdminHousehold,
   type AdminRsvp,
@@ -19,7 +21,8 @@ import { AdminDesk } from "./admin/AdminDesk";
 import "../styles/admin.css";
 
 export function Admin() {
-  const { ready, isAdmin, guest, signOut } = useGuest();
+  const { ready, isAdmin, isPlanner, guest, signOut } = useGuest();
+  const staff = isAdmin || isPlanner;
   const [error, setError] = useState("");
   const [households, setHouseholds] = useState<AdminHousehold[]>([]);
   const [rsvps, setRsvps] = useState<AdminRsvp[]>([]);
@@ -30,6 +33,21 @@ export function Admin() {
   const [loaded, setLoaded] = useState(false);
 
   const reload = useCallback(async () => {
+    if (isPlanner) {
+      // The planner never loads gifts or payment settings, and gets no emails.
+      const [nextHouseholds, nextRsvps, nextTours, nextSignups] = await Promise.all([
+        plannerListHouseholds(),
+        adminListRsvps(),
+        plannerTourList(),
+        adminListActivitySignups(),
+      ]);
+      setHouseholds(nextHouseholds);
+      setRsvps(nextRsvps);
+      setContributions([]);
+      setReservations(nextTours.reservations);
+      setSignups(nextSignups);
+      return;
+    }
     const [nextHouseholds, nextRsvps, nextPayments, nextTours, nextSignups, nextSettings] = await Promise.all([
       adminListHouseholds(),
       adminListRsvps(),
@@ -44,10 +62,10 @@ export function Admin() {
     setReservations(nextTours.reservations);
     setSignups(nextSignups);
     setSettings(nextSettings);
-  }, []);
+  }, [isPlanner]);
 
   useEffect(() => {
-    if (!ready || !isAdmin) return;
+    if (!ready || !staff) return;
     let alive = true;
     reload()
       .then(() => {
@@ -59,10 +77,10 @@ export function Admin() {
     return () => {
       alive = false;
     };
-  }, [ready, isAdmin, reload]);
+  }, [ready, staff, reload]);
 
   if (!ready) return <main className="admin-desk" />;
-  if (!isAdmin) return <Navigate to={guest ? "/invite" : "/"} replace />;
+  if (!staff) return <Navigate to={guest ? "/invite" : "/"} replace />;
   if (!loaded && !error) return <main className="admin-desk" />;
   if (error) {
     return (
@@ -80,6 +98,7 @@ export function Admin() {
       reservations={reservations}
       signups={signups}
       settings={settings}
+      readOnly={!isAdmin}
       onSettings={setSettings}
       onReload={reload}
       onSignOut={() => void signOut()}

@@ -15,12 +15,13 @@ export function StaySection() {
         <p>{t("stayWalk")}</p>
       </header>
 
+      <p className="stay-alert">{t("stayP2")}</p>
+
       <div className="stay-list">
         {hotels.map((hotel) => (
           <HotelCard key={hotel.id} hotel={hotel} lang={lang} />
         ))}
       </div>
-      <p className="stay-alert">{t("stayP2")}</p>
     </div>
   );
 }

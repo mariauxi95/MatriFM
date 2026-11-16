@@ -1,6 +1,6 @@
 import { clubHosts } from "../data/club";
 import { gifts as giftSeed } from "../data/gifts";
-import { defaultSettings, toUsd } from "./money";
+import { defaultSettings, giftUsd, rateFor } from "./money";
 import { parsePlans } from "./plans";
 import { supabase } from "./supabase";
 import type {
@@ -68,6 +68,8 @@ export type AdminHousehold = {
   teenCount: number | null;
   childCount: number | null;
   inviteSentAt: string;
+  lastReminderAt: string;
+  lastReminderBy: string;
   members: AdminMember[];
 };
 
@@ -348,15 +350,9 @@ export async function submitContribution(
   input: Omit<Contribution, "id" | "createdAt" | "status" | "amountUsdNormalized" | "fxRateUsed">,
 ) {
   const settings = await fetchSettings();
-  const amountUsdNormalized = toUsd(input.amountOriginal, input.currencyOriginal, settings);
-  const fxRateUsed =
-    input.currencyOriginal === "CLP"
-      ? settings.usdToClp
-      : input.currencyOriginal === "CAD"
-        ? settings.usdToCad
-        : input.currencyOriginal === "EUR"
-          ? settings.usdToEur
-          : 1;
+  // The database recomputes both values (gift_usd_value), so these only keep the two sides in step.
+  const amountUsdNormalized = giftUsd(input.amountOriginal, input.currencyOriginal, settings);
+  const fxRateUsed = rateFor(input.currencyOriginal, settings);
   const household = await householdId();
   const { data, error } = await supabase
     .from("contributions")
@@ -638,7 +634,9 @@ type HouseholdRow = {
   teen_count: number | null;
   child_count: number | null;
   invite_sent_at: string | null;
-  members: { id: string; full_name: string; email: string | null; phone: string | null; age_group: string | null; is_primary: boolean | null }[] | null;
+  last_reminder_at: string | null;
+  last_reminder_by: string | null;
+  members: { id: string; full_name: string; email?: string | null; phone: string | null; age_group: string | null; is_primary: boolean | null }[] | null;
 };
 
 function asAge(value: string | null | undefined): AgeGroup {
@@ -646,15 +644,21 @@ function asAge(value: string | null | undefined): AgeGroup {
   return "adult";
 }
 
-export async function adminListHouseholds(): Promise<AdminHousehold[]> {
-  const { data, error } = await supabase
-    .from("households")
-    .select(
-      "id, legacy_code, display_name, guest_limit, has_children, children_limit, side, kind, phone, origin_city, lodging, extend_trip, std_attending, std_sent_at, companion_count, teen_count, child_count, invite_sent_at, members(id, full_name, email, phone, age_group, is_primary)",
-    )
-    .order("legacy_code");
-  fail(error);
-  return ((data ?? []) as HouseholdRow[]).map((row) => ({
+const HOUSEHOLD_COLUMNS =
+  "id, legacy_code, display_name, guest_limit, has_children, children_limit, side, kind, phone, origin_city, lodging, extend_trip, std_attending, std_sent_at, companion_count, teen_count, child_count, invite_sent_at, last_reminder_at, last_reminder_by";
+
+type StaffMemberRow = {
+  id: string;
+  household_id: string;
+  full_name: string;
+  email?: string | null;
+  phone: string | null;
+  age_group: string | null;
+  is_primary: boolean | null;
+};
+
+function mapHousehold(row: HouseholdRow, members: NonNullable<HouseholdRow["members"]>): AdminHousehold {
+  return {
     id: row.id,
     legacyCode: row.legacy_code,
     displayName: row.display_name,
@@ -673,7 +677,9 @@ export async function adminListHouseholds(): Promise<AdminHousehold[]> {
     teenCount: row.teen_count,
     childCount: row.child_count,
     inviteSentAt: row.invite_sent_at ?? "",
-    members: (row.members ?? [])
+    lastReminderAt: row.last_reminder_at ?? "",
+    lastReminderBy: row.last_reminder_by ?? "",
+    members: members
       .map((member) => ({
         id: member.id,
         fullName: member.full_name,
@@ -683,7 +689,55 @@ export async function adminListHouseholds(): Promise<AdminHousehold[]> {
         isPrimary: Boolean(member.is_primary),
       }))
       .sort(compareMembers),
-  }));
+  };
+}
+
+export async function adminListHouseholds(): Promise<AdminHousehold[]> {
+  const { data, error } = await supabase
+    .from("households")
+    .select(`${HOUSEHOLD_COLUMNS}, members(id, full_name, email, phone, age_group, is_primary)`)
+    .order("legacy_code");
+  fail(error);
+  return ((data ?? []) as HouseholdRow[]).map((row) => mapHousehold(row, row.members ?? []));
+}
+
+// The planner cannot read members directly (that table holds emails), so her list comes from
+// a database function that leaves the email out. Every member comes back with email "".
+export async function plannerListHouseholds(): Promise<AdminHousehold[]> {
+  const [households, members] = await Promise.all([
+    supabase.from("households").select(HOUSEHOLD_COLUMNS).order("legacy_code"),
+    supabase.rpc("planner_members"),
+  ]);
+  fail(households.error);
+  fail(members.error);
+  const byHousehold = new Map<string, StaffMemberRow[]>();
+  for (const member of (members.data ?? []) as StaffMemberRow[]) {
+    const list = byHousehold.get(member.household_id) ?? [];
+    list.push(member);
+    byHousehold.set(member.household_id, list);
+  }
+  return ((households.data ?? []) as HouseholdRow[]).map((row) => mapHousehold(row, byHousehold.get(row.id) ?? []));
+}
+
+export async function plannerTourList() {
+  const { data, error } = await supabase.rpc("planner_tours");
+  fail(error);
+  return {
+    reservations: ((data ?? []) as Omit<TourRow, "email">[]).map((row) => ({
+      ...mapTour({ ...row, email: "" }),
+      householdId: row.household_id ?? null,
+    })),
+  };
+}
+
+export async function adminLogReminder(householdIds: string[]) {
+  const { error } = await supabase.rpc("admin_log_reminder", { p_household_ids: householdIds });
+  fail(error);
+}
+
+export async function adminClearReminder(householdIds: string[]) {
+  const { error } = await supabase.rpc("admin_clear_reminder", { p_household_ids: householdIds });
+  fail(error);
 }
 
 export async function adminUpdateHousehold(household: AdminHousehold) {

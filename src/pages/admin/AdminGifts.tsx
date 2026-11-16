@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { gifts } from "../../data/gifts";
-import { formatMoney, methodCurrency, toUsd } from "../../lib/money";
+import { formatMoney, giftUsd, methodCurrency, rateFor } from "../../lib/money";
 import { adminRegisterContribution, adminUpdateStatus, type AdminHousehold } from "../../lib/sheets";
 import type { Contribution, ContributionStatus, PaymentMethod, PaymentSettings } from "../../types";
 import { downloadSheet } from "./excel";
@@ -64,6 +64,13 @@ function matchesStatus(status: ContributionStatus, filter: StatusFilter) {
   return status === filter;
 }
 
+// Test gifts: still listed, but left out of every total and stat card on this page.
+const STATS_EXCLUDED_EMAILS = new Set(["yanezlfernando@gmail.com"]);
+
+function countsInStats(row: Contribution) {
+  return !STATS_EXCLUDED_EMAILS.has(row.email.trim().toLowerCase());
+}
+
 function bucket(rows: Contribution[], method: PaymentMethod) {
   const currency = methodCurrency(method);
   const own = rows.filter((row) => row.method === method && row.status !== "cancelled");
@@ -107,7 +114,8 @@ export function AdminGifts({
   const householdsById = useMemo(() => new Map(households.map((house) => [house.id, house])), [households]);
 
   const totals = useMemo(() => {
-    const active = contributions.filter((row) => row.status !== "cancelled");
+    const counted = contributions.filter(countsInStats);
+    const active = counted.filter((row) => row.status !== "cancelled");
     const confirmed = active.filter((row) => row.status === "confirmed");
     const pending = active.filter((row) => row.status === "pending");
     return {
@@ -115,10 +123,20 @@ export function AdminGifts({
       pendingUsd: pending.reduce((sum, row) => sum + row.amountUsdNormalized, 0),
       confirmedCount: confirmed.length,
       pendingCount: pending.length,
-      cancelledCount: contributions.filter((row) => row.status === "cancelled").length,
-      accounts: ACCOUNTS.map((account) => bucket(contributions, account.method)),
+      cancelledCount: counted.filter((row) => row.status === "cancelled").length,
+      accounts: ACCOUNTS.map((account) => bucket(counted, account.method)),
     };
   }, [contributions]);
+
+  // The filter chips count what the list shows, so they include the excluded gifts.
+  const listCounts = useMemo(
+    () => ({
+      pending: contributions.filter((row) => row.status === "pending").length,
+      confirmed: contributions.filter((row) => row.status === "confirmed").length,
+      cancelled: contributions.filter((row) => row.status === "cancelled").length,
+    }),
+    [contributions],
+  );
 
   const giftOptions = useMemo(() => {
     const known = new Set(gifts.map((gift) => gift.id));
@@ -178,7 +196,7 @@ export function AdminGifts({
   }
 
   function downloadExcel() {
-    const headers = ["Fecha", "Persona", "Email", "Invitación", "Destino", "Monto", "Moneda", "Cuenta", "USD", "Dedicatoria", "Anónimo", "Estado", "Confirmado"];
+    const headers = ["Fecha", "Persona", "Email", "Invitación", "Destino", "Monto", "Moneda", "Cuenta", "USD", "Dedicatoria", "Estado", "Confirmado"];
     const rows = [...contributions]
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
       .map((row) => {
@@ -194,7 +212,6 @@ export function AdminGifts({
           paymentMethodLabel(row.method),
           String(row.amountUsdNormalized),
           row.dedication,
-          row.anonymous ? "Sí" : "No",
           statusLabel(row.status),
           formatWhen(row.confirmedAt, true),
         ];
@@ -203,10 +220,10 @@ export function AdminGifts({
   }
 
   const statusChips: { id: StatusFilter; label: string; count: number }[] = [
-    { id: "open", label: "Activos", count: totals.confirmedCount + totals.pendingCount },
-    { id: "pending", label: "Pendientes", count: totals.pendingCount },
-    { id: "confirmed", label: "Confirmados", count: totals.confirmedCount },
-    { id: "cancelled", label: "Cancelados", count: totals.cancelledCount },
+    { id: "open", label: "Activos", count: listCounts.confirmed + listCounts.pending },
+    { id: "pending", label: "Pendientes", count: listCounts.pending },
+    { id: "confirmed", label: "Confirmados", count: listCounts.confirmed },
+    { id: "cancelled", label: "Cancelados", count: listCounts.cancelled },
     { id: "all", label: "Todos", count: contributions.length },
   ];
 
@@ -454,7 +471,7 @@ function GiftRows({
         <td>
           <span className="admin-gift-person">
             <b>{row.name.trim() || "Sin nombre"}</b>
-            {row.anonymous ? <i title="Anónimo para invitados">Anónimo</i> : null}
+            {countsInStats(row) ? null : <i title="Aparece en la lista, pero no suma en los totales de esta página">No cuenta</i>}
           </span>
           <small>{row.email.trim() || "Sin email"}</small>
         </td>
@@ -514,7 +531,6 @@ function GiftRows({
               ) : null}
             </dl>
             {row.dedication.trim() ? <p className="admin-gift-dedication">{row.dedication.trim()}</p> : null}
-            {row.anonymous ? <p className="admin-gift-sub">Los invitados ven este regalo como anónimo.</p> : null}
             {row.status === "pending" ? (
               <div className="admin-pay-actions">
                 <button className="admin-btn" type="button" disabled={busy} onClick={() => onStatus("confirmed")}>
@@ -555,7 +571,7 @@ function FundBoard({
     <div className="admin-gift-funds">
       {giftOptions.map((id) => {
         const gift = giftOf(id);
-        const own = contributions.filter((row) => row.giftId === id && row.status !== "cancelled");
+        const own = contributions.filter((row) => row.giftId === id && row.status !== "cancelled" && countsInStats(row));
         const confirmedUsd = own.filter((row) => row.status === "confirmed").reduce((sum, row) => sum + row.amountUsdNormalized, 0);
         const pendingUsd = own.filter((row) => row.status === "pending").reduce((sum, row) => sum + row.amountUsdNormalized, 0);
         const target = gift?.targetUsd ?? null;
@@ -601,7 +617,7 @@ function FundBoard({
                   return (
                     <li key={row.id}>
                       <span>
-                        <b>{row.anonymous ? `${row.name.trim() || "Sin nombre"} · anónimo` : row.name.trim() || "Sin nombre"}</b>
+                        <b>{row.name.trim() || "Sin nombre"}</b>
                         <small>
                           {formatMoney(row.amountOriginal, row.currencyOriginal)} · {paymentMethodLabel(row.method)} · {statusLabel(row.status)}
                           {row.dedication.trim() ? ` · ${row.dedication.trim()}` : ""}
@@ -664,15 +680,14 @@ function RegisterGift({
   const [method, setMethod] = useState<PaymentMethod>("clp");
   const [amount, setAmount] = useState("");
   const [dedication, setDedication] = useState("");
-  const [anonymous, setAnonymous] = useState(false);
   const [received, setReceived] = useState(true);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
   const currency = methodCurrency(method);
   const parsed = Number(amount.replace(",", "."));
-  const usd = Number.isFinite(parsed) && parsed > 0 ? toUsd(parsed, currency, settings) : 0;
-  const fxRate = currency === "USD" || usd <= 0 ? 1 : parsed / usd;
+  const usd = Number.isFinite(parsed) && parsed > 0 ? giftUsd(parsed, currency, settings) : 0;
+  const fxRate = rateFor(currency, settings);
 
   function chooseHousehold(id: string) {
     const house = options.find((item) => item.id === id);
@@ -711,7 +726,7 @@ function RegisterGift({
         amountUsdNormalized: usd,
         method,
         dedication: dedication.trim(),
-        anonymous,
+        anonymous: false,
         status: received ? "confirmed" : "pending",
       });
       await onSaved();
@@ -774,10 +789,6 @@ function RegisterGift({
       <p className="admin-gift-sub">
         {usd > 0 ? `Equivale a ${formatMoney(usd, "USD")}` : "El total en USD se calcula con el tipo de cambio de Transferencias."}
       </p>
-      <label className="admin-check">
-        <input type="checkbox" checked={anonymous} onChange={(event) => setAnonymous(event.target.checked)} />
-        <span>Anónimo para invitados</span>
-      </label>
       <label className="admin-check">
         <input type="checkbox" checked={received} onChange={(event) => setReceived(event.target.checked)} />
         <span>Ya llegó el dinero</span>

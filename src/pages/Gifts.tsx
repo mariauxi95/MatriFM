@@ -33,7 +33,6 @@ export function Gifts() {
   const name = guest?.displayName ?? "";
   const email = guest?.email ?? "";
   const [dedication, setDedication] = useState("");
-  const [anonymous, setAnonymous] = useState(false);
 
   useEffect(() => {
     fetchGifts().then(setItems);
@@ -78,7 +77,7 @@ export function Gifts() {
       currencyOriginal: currency,
       method,
       dedication,
-      anonymous,
+      anonymous: false,
     });
     setItems(await fetchGifts());
     setStep("done");
@@ -261,13 +260,7 @@ export function Gifts() {
                       rows={4}
                     />
                   </label>
-                  {!anonymous ? (
-                    <p className="gift-love-sign">{t("giftLoveSign", { name: guest?.displayName ?? name })}</p>
-                  ) : null}
-                  <label className="check">
-                    <input type="checkbox" checked={anonymous} onChange={(e) => setAnonymous(e.target.checked)} />
-                    <span>{t("anonymous")}</span>
-                  </label>
+                  <p className="gift-love-sign">{t("giftLoveSign", { name: guest?.displayName ?? name })}</p>
                 </form>
               ) : null}
               {step === "done" ? (
