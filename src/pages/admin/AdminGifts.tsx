@@ -178,7 +178,7 @@ export function AdminGifts({
   }
 
   function downloadExcel() {
-    const headers = ["Fecha", "Persona", "Email", "Invitación", "Destino", "Monto", "Moneda", "Cuenta", "USD", "Dedicatoria", "Anónimo", "Estado", "Confirmado"];
+    const headers = ["Fecha", "Persona", "Email", "Invitación", "Destino", "Monto", "Moneda", "Cuenta", "USD", "Dedicatoria", "Estado", "Confirmado"];
     const rows = [...contributions]
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
       .map((row) => {
@@ -194,7 +194,6 @@ export function AdminGifts({
           paymentMethodLabel(row.method),
           String(row.amountUsdNormalized),
           row.dedication,
-          row.anonymous ? "Sí" : "No",
           statusLabel(row.status),
           formatWhen(row.confirmedAt, true),
         ];
@@ -454,7 +453,6 @@ function GiftRows({
         <td>
           <span className="admin-gift-person">
             <b>{row.name.trim() || "Sin nombre"}</b>
-            {row.anonymous ? <i title="Anónimo para invitados">Anónimo</i> : null}
           </span>
           <small>{row.email.trim() || "Sin email"}</small>
         </td>
@@ -514,7 +512,6 @@ function GiftRows({
               ) : null}
             </dl>
             {row.dedication.trim() ? <p className="admin-gift-dedication">{row.dedication.trim()}</p> : null}
-            {row.anonymous ? <p className="admin-gift-sub">Los invitados ven este regalo como anónimo.</p> : null}
             {row.status === "pending" ? (
               <div className="admin-pay-actions">
                 <button className="admin-btn" type="button" disabled={busy} onClick={() => onStatus("confirmed")}>
@@ -601,7 +598,7 @@ function FundBoard({
                   return (
                     <li key={row.id}>
                       <span>
-                        <b>{row.anonymous ? `${row.name.trim() || "Sin nombre"} · anónimo` : row.name.trim() || "Sin nombre"}</b>
+                        <b>{row.name.trim() || "Sin nombre"}</b>
                         <small>
                           {formatMoney(row.amountOriginal, row.currencyOriginal)} · {paymentMethodLabel(row.method)} · {statusLabel(row.status)}
                           {row.dedication.trim() ? ` · ${row.dedication.trim()}` : ""}
@@ -664,7 +661,6 @@ function RegisterGift({
   const [method, setMethod] = useState<PaymentMethod>("clp");
   const [amount, setAmount] = useState("");
   const [dedication, setDedication] = useState("");
-  const [anonymous, setAnonymous] = useState(false);
   const [received, setReceived] = useState(true);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -711,7 +707,7 @@ function RegisterGift({
         amountUsdNormalized: usd,
         method,
         dedication: dedication.trim(),
-        anonymous,
+        anonymous: false,
         status: received ? "confirmed" : "pending",
       });
       await onSaved();
@@ -774,10 +770,6 @@ function RegisterGift({
       <p className="admin-gift-sub">
         {usd > 0 ? `Equivale a ${formatMoney(usd, "USD")}` : "El total en USD se calcula con el tipo de cambio de Transferencias."}
       </p>
-      <label className="admin-check">
-        <input type="checkbox" checked={anonymous} onChange={(event) => setAnonymous(event.target.checked)} />
-        <span>Anónimo para invitados</span>
-      </label>
       <label className="admin-check">
         <input type="checkbox" checked={received} onChange={(event) => setReceived(event.target.checked)} />
         <span>Ya llegó el dinero</span>

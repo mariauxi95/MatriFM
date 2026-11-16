@@ -496,7 +496,7 @@ export function AdminPanel({
           return (
             <div className="admin-pay" key={item.id}>
               <div>
-                <b>{item.anonymous ? "Anónimo" : item.name}</b>
+                <b>{item.name}</b>
                 <small>
                   {title} · {formatMoney(item.amountOriginal, item.currencyOriginal)} · {paymentMethodLabel(item.method)} · {item.status}
                   {item.dedication.trim() ? ` · ${item.dedication.trim()}` : ""}
