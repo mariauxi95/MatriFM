@@ -1802,3 +1802,39 @@ button.admin-widget {
     z-index: 30;
   }
 }
+
+/* Last reminder column and the planner's read-only name tag */
+.admin-reminder {
+  min-width: 132px;
+}
+
+.admin-reminder-when {
+  display: block;
+  font-size: 13px;
+}
+
+.admin-reminder-btn {
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ad-muted);
+  font: inherit;
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.admin-reminder-btn:hover:not(:disabled) {
+  color: var(--ad-ink);
+}
+
+.admin-reminder-btn:disabled {
+  cursor: default;
+  text-decoration: none;
+}
+
+span.admin-sticker {
+  display: inline-block;
+}

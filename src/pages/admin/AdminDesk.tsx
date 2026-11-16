@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEven
 import { Link } from "react-router-dom";
 import { hotels } from "../../data/hotels";
 import type { ActivitySignup, AdminHousehold, AdminRsvp, AdminTourReservation } from "../../lib/sheets";
-import { adminSaveSettings, adminSetInviteSent, adminSetLodging, adminUpdateHousehold } from "../../lib/sheets";
+import { adminLogReminder, adminSaveSettings, adminSetInviteSent, adminSetLodging, adminUpdateHousehold } from "../../lib/sheets";
 import type { Contribution, PaymentSettings } from "../../types";
 import { AdminGifts } from "./AdminGifts";
 import { AdminPanel, CreateHousehold } from "./AdminPanel";
@@ -35,6 +35,7 @@ import {
   sortName,
   planLabel,
   replyLabel,
+  reminderLabel,
   rsvpPersonFor,
   TOUR_COLUMNS,
   tourCell,
@@ -67,6 +68,7 @@ export function AdminDesk({
   reservations,
   signups,
   settings,
+  readOnly = false,
   onSettings,
   onReload,
   onSignOut,
@@ -77,6 +79,8 @@ export function AdminDesk({
   reservations: AdminTourReservation[];
   signups: ActivitySignup[];
   settings: PaymentSettings;
+  /** The planner: no emails, no gifts, no editing. She can still log reminders. */
+  readOnly?: boolean;
   onSettings: (settings: PaymentSettings) => void;
   onReload: () => Promise<void>;
   onSignOut: () => void;
@@ -106,7 +110,7 @@ export function AdminDesk({
       const result = sortName(a).localeCompare(sortName(b), "es");
       return nameOrder === "az" ? result : -result;
     });
-  const selected = desk.find((row) => row.household.id === selectedId) ?? null;
+  const selected = readOnly ? null : (desk.find((row) => row.household.id === selectedId) ?? null);
   const peopleCount = visible.reduce((sum, row) => sum + deskGuests(row).length, 0);
 
   useEffect(() => {
@@ -187,6 +191,23 @@ export function AdminDesk({
     return hotelOptions.find((hotel) => hotel.id === lodging)?.name ?? "Sin hotel";
   }
 
+  const [remindingId, setRemindingId] = useState<string | "all" | null>(null);
+  const [reminderError, setReminderError] = useState("");
+
+  async function logReminder(ids: string[]) {
+    if (!ids.length) return;
+    setReminderError("");
+    setRemindingId(ids.length === 1 ? ids[0] : "all");
+    try {
+      await adminLogReminder(ids);
+      await onReload();
+    } catch {
+      setReminderError("No se pudo registrar el recordatorio. Inténtalo de nuevo.");
+    } finally {
+      setRemindingId(null);
+    }
+  }
+
   function downloadExcel() {
     const rows = desk.flatMap((row) =>
       deskGuests(row).map((guest) =>
@@ -199,7 +220,10 @@ export function AdminDesk({
         }),
       ),
     );
-    downloadGuestSheet(EXPORT_HEADERS, rows);
+    // The planner's file has no email or gift columns, same as her screen.
+    const drop = new Set(readOnly ? [EXPORT_HEADERS.indexOf("Email"), EXPORT_HEADERS.indexOf("Regalos")] : []);
+    const keep = (_cell: string, index: number) => !drop.has(index);
+    downloadGuestSheet(EXPORT_HEADERS.filter(keep), rows.map((row) => row.filter(keep)));
   }
 
   return (
@@ -225,14 +249,16 @@ export function AdminDesk({
         >
           Respuestas
         </button>
-        <button
-          type="button"
-          className={`admin-nav-item${tab === "gifts" ? " is-current" : ""}`}
-          aria-current={tab === "gifts" ? "page" : undefined}
-          onClick={() => setTab("gifts")}
-        >
-          Regalos
-        </button>
+        {readOnly ? null : (
+          <button
+            type="button"
+            className={`admin-nav-item${tab === "gifts" ? " is-current" : ""}`}
+            aria-current={tab === "gifts" ? "page" : undefined}
+            onClick={() => setTab("gifts")}
+          >
+            Regalos
+          </button>
+        )}
         <button
           type="button"
           className={`admin-nav-item${tab === "tours" ? " is-current" : ""}`}
@@ -241,14 +267,16 @@ export function AdminDesk({
         >
           Tours
         </button>
-        <button
-          type="button"
-          className={`admin-nav-item${tab === "transfers" ? " is-current" : ""}`}
-          aria-current={tab === "transfers" ? "page" : undefined}
-          onClick={() => setTab("transfers")}
-        >
-          Transferencias
-        </button>
+        {readOnly ? null : (
+          <button
+            type="button"
+            className={`admin-nav-item${tab === "transfers" ? " is-current" : ""}`}
+            aria-current={tab === "transfers" ? "page" : undefined}
+            onClick={() => setTab("transfers")}
+          >
+            Transferencias
+          </button>
+        )}
         <div className="admin-nav-foot">
           <Link className="admin-btn admin-btn-ghost" to="/invite">
             Ver invitación
@@ -258,7 +286,7 @@ export function AdminDesk({
           </button>
         </div>
       </aside>
-      {tab === "transfers" ? (
+      {tab === "transfers" && !readOnly ? (
         <section className="admin-main">
           <header className="admin-top">
             <div>
@@ -273,8 +301,8 @@ export function AdminDesk({
           </div>
         </section>
       ) : tab === "replies" ? (
-        <AdminReplies desk={desk} onReload={onReload} />
-      ) : tab === "gifts" ? (
+        <AdminReplies desk={desk} onReload={onReload} readOnly={readOnly} />
+      ) : tab === "gifts" && !readOnly ? (
         <AdminGifts
           contributions={contributions}
           households={households}
@@ -288,6 +316,7 @@ export function AdminDesk({
         />
       ) : tab === "tours" ? (
         <AdminTours
+          readOnly={readOnly}
           reservations={reservations}
           households={households}
           onOpenHousehold={(id) => {
@@ -310,28 +339,43 @@ export function AdminDesk({
             <button className="admin-btn admin-btn-ghost" type="button" onClick={downloadExcel}>
               Descargar Excel
             </button>
+            <button
+              className="admin-btn admin-btn-ghost"
+              type="button"
+              disabled={remindingId !== null || visible.length === 0}
+              onClick={() => {
+                if (!window.confirm(`Registrar un recordatorio hoy para ${visible.length} invitaciones?`)) return;
+                void logReminder(visible.map((row) => row.household.id));
+              }}
+            >
+              {remindingId === "all" ? "Registrando…" : `Registrar recordatorio (${visible.length})`}
+            </button>
             <label className="admin-search">
               <span className="sr-only">Buscar</span>
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Buscar nombre, email o código"
+                placeholder={readOnly ? "Buscar nombre, teléfono o código" : "Buscar nombre, email o código"}
               />
             </label>
-            <button
-              className="admin-btn"
-              type="button"
-              onClick={() => {
-                setSelectedId(null);
-                setCreating(true);
-              }}
-            >
-              Nueva invitación
-            </button>
+            {readOnly ? null : (
+              <button
+                className="admin-btn"
+                type="button"
+                onClick={() => {
+                  setSelectedId(null);
+                  setCreating(true);
+                }}
+              >
+                Nueva invitación
+              </button>
+            )}
           </div>
         </header>
+        {reminderError ? <p className="admin-error">{reminderError}</p> : null}
 
         <DeskWidgets
+          readOnly={readOnly}
           desk={desk}
           filter={filter}
           side={side}
@@ -355,9 +399,10 @@ export function AdminDesk({
                       <span aria-hidden="true">{nameOrder === "az" ? "A–Z" : "Z–A"}</span>
                     </button>
                   </th>
-                  <th>Email</th>
+                  {readOnly ? null : <th>Email</th>}
                   <th>Teléfono</th>
                   <th>Invitación</th>
+                  <th>Último recordatorio</th>
                   <th className="admin-hotel-col">Hotel</th>
                   <th className="is-reply">Respuesta</th>
                   <th className="is-reply">Plan</th>
@@ -366,7 +411,7 @@ export function AdminDesk({
                   <th className="is-reply">Dieta</th>
                   <th className="is-reply">Nota</th>
                   <th className="is-reply">Niños</th>
-                  <th className="is-pay">Regalos</th>
+                  {readOnly ? null : <th className="is-pay">Regalos</th>}
                   {TOUR_COLUMNS.map((tour) => (
                     <th key={tour.id} className="is-pay">
                       {tour.label}
@@ -383,6 +428,9 @@ export function AdminDesk({
                 <HouseholdRows
                   key={row.household.id}
                   row={row}
+                  readOnly={readOnly}
+                  reminderBusy={remindingId === row.household.id || remindingId === "all"}
+                  onLogReminder={() => void logReminder([row.household.id])}
                   selected={selectedId === row.household.id}
                   inviteSent={inviteSent(row.household)}
                   inviteBusy={sendingId === row.household.id}
@@ -394,6 +442,7 @@ export function AdminDesk({
                   nameBusy={namingId === row.household.id}
                   onRename={(displayName) => renameHousehold(row.household, displayName)}
                   onSelect={() => {
+                    if (readOnly) return;
                     setCreating(false);
                     setSelectedId(row.household.id);
                   }}
@@ -428,6 +477,7 @@ export function AdminDesk({
 }
 
 function DeskWidgets({
+  readOnly,
   desk,
   filter,
   side,
@@ -436,6 +486,7 @@ function DeskWidgets({
   onSide,
   onKind,
 }: {
+  readOnly: boolean;
   desk: ReturnType<typeof buildDesk>;
   filter: DeskFilter;
   side: SideFilter;
@@ -536,8 +587,12 @@ function DeskWidgets({
 
       <ShareWidget title="Lista" rows={sides} active={side} onPick={onSide} />
       <ShareWidget title="Tipo" rows={kinds} active={kind} onPick={onKind} />
-      <RingWidget label="Sin email" count={missing} total={headsOf(emailPool)} pressed={filter === "no-email"} onClick={() => onFilter("no-email")} />
-      <RingWidget label="Pagos" count={payments} total={totalHeads} pressed={filter === "payments"} onClick={() => onFilter("payments")} />
+      {readOnly ? null : (
+        <>
+          <RingWidget label="Sin email" count={missing} total={headsOf(emailPool)} pressed={filter === "no-email"} onClick={() => onFilter("no-email")} />
+          <RingWidget label="Pagos" count={payments} total={totalHeads} pressed={filter === "payments"} onClick={() => onFilter("payments")} />
+        </>
+      )}
     </section>
   );
 }
@@ -606,6 +661,9 @@ function RingWidget({
 
 function HouseholdRows({
   row,
+  readOnly,
+  reminderBusy,
+  onLogReminder,
   selected,
   inviteSent,
   inviteBusy,
@@ -619,6 +677,9 @@ function HouseholdRows({
   onSelect,
 }: {
   row: ReturnType<typeof buildDesk>[number];
+  readOnly: boolean;
+  reminderBusy: boolean;
+  onLogReminder: () => void;
   selected: boolean;
   inviteSent: boolean;
   inviteBusy: boolean;
@@ -634,7 +695,7 @@ function HouseholdRows({
   const { household } = row;
   const guests = deskGuests(row);
   const span = guests.length;
-  const columns = 13 + TOUR_COLUMNS.length + ACTIVITY_COLUMNS.length;
+  const columns = 14 - (readOnly ? 2 : 0) + TOUR_COLUMNS.length + ACTIVITY_COLUMNS.length;
   const coming = Boolean(row.rsvp?.attending);
   const plan = coming ? planLabel(row.rsvp?.people ?? []) : "—";
   const bus = coming ? busLabel(row.rsvp?.people ?? []) : "—";
@@ -651,7 +712,11 @@ function HouseholdRows({
               <td>
                 {index === 0 ? (
                   <span className="admin-sticker-row">
-                    <NameSticker name={name} busy={nameBusy} onRename={onRename} />
+                    {readOnly ? (
+                      <span className="admin-sticker">{name}</span>
+                    ) : (
+                      <NameSticker name={name} busy={nameBusy} onRename={onRename} />
+                    )}
                     <GuestTags side={household.side} kind={household.kind} />
                   </span>
                 ) : null}
@@ -664,7 +729,7 @@ function HouseholdRows({
                   </span>
                 </button>
               </td>
-              <td>{guest.email ? guest.email : <em>sin email</em>}</td>
+              {readOnly ? null : <td>{guest.email ? guest.email : <em>sin email</em>}</td>}
               <td>
                 {guest.phone ? (
                   <a href={`https://wa.me/${guest.phone}`} target="_blank" rel="noreferrer">
@@ -681,11 +746,17 @@ function HouseholdRows({
                       type="button"
                       className={`admin-sent${inviteSent ? " is-on" : ""}`}
                       aria-pressed={inviteSent}
-                      disabled={inviteBusy}
+                      disabled={inviteBusy || readOnly}
                       onClick={onToggleInvite}
                     >
                       <span />
                       {inviteSent ? "Enviada" : "Sin enviar"}
+                    </button>
+                  </td>
+                  <td className="admin-span admin-reminder" rowSpan={span}>
+                    <span className="admin-reminder-when">{reminderLabel(household.lastReminderAt, household.lastReminderBy)}</span>
+                    <button type="button" className="admin-reminder-btn" disabled={reminderBusy} onClick={onLogReminder}>
+                      {reminderBusy ? "…" : "Registrar hoy"}
                     </button>
                   </td>
                   <td className="admin-span admin-hotel-col" rowSpan={span}>
@@ -695,7 +766,7 @@ function HouseholdRows({
                         className="admin-hotel"
                         aria-label={`Hotel de ${household.displayName}`}
                         value={lodging}
-                        disabled={lodgingBusy}
+                        disabled={lodgingBusy || readOnly}
                         onChange={(event) => onLodging(event.target.value)}
                       >
                         <option value="">Sin hotel</option>
@@ -734,9 +805,11 @@ function HouseholdRows({
                   <td className="admin-span is-reply admin-ellipsis" rowSpan={span} title={children}>
                     {children}
                   </td>
-                  <td className="admin-span is-pay admin-ellipsis" rowSpan={span} title={gifts}>
-                    {gifts}
-                  </td>
+                  {readOnly ? null : (
+                    <td className="admin-span is-pay admin-ellipsis" rowSpan={span} title={gifts}>
+                      {gifts}
+                    </td>
+                  )}
                   {TOUR_COLUMNS.map((tour) => {
                     const label = tourCell(row.tours, tour.id);
                     return (

@@ -7,7 +7,7 @@ import { authFailure, oauthReturnFailure, sendMagicLink, signInWithGoogle, verif
 
 export function Gate() {
   const { t } = useLang();
-  const { guest, ready, isAdmin } = useGuest();
+  const { guest, ready, isAdmin, isPlanner } = useGuest();
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [sent, setSent] = useState(false);
@@ -28,7 +28,7 @@ export function Gate() {
   }, [t]);
 
   if (!ready) return <main className="gate" />;
-  if (isAdmin && !guest) return <Navigate to="/admin" replace />;
+  if ((isAdmin || isPlanner) && !guest) return <Navigate to="/admin" replace />;
   if (guest) return <Navigate to="/invite" replace />;
 
   async function onSubmit(event: FormEvent) {

@@ -444,6 +444,24 @@ export function kindLabel(kind: GuestKind | null) {
   return "";
 }
 
+/** "hoy · Fer", "hace 3 días · Gera", or "—" when nobody has reached out yet. */
+export function reminderLabel(at: string, by: string, now: Date = new Date()) {
+  if (!at) return "—";
+  const then = new Date(at);
+  if (Number.isNaN(then.getTime())) return "—";
+  const day = (date: Date) => Math.floor((date.getTime() - date.getTimezoneOffset() * 60000) / 86400000);
+  const days = Math.max(0, day(now) - day(then));
+  const when =
+    days === 0
+      ? "hoy"
+      : days === 1
+        ? "ayer"
+        : days <= 60
+          ? `hace ${days} días`
+          : then.toLocaleDateString("es", { day: "numeric", month: "short" });
+  return by ? `${when} · ${by}` : when;
+}
+
 export const EXPORT_HEADERS = [
   "Invitación",
   "Código",
@@ -454,6 +472,7 @@ export const EXPORT_HEADERS = [
   "Lado",
   "Tipo",
   "Invitación enviada",
+  "Último recordatorio",
   "Hotel",
   "Respuesta",
   "Plan",
@@ -486,6 +505,9 @@ export function guestExportRow(input: {
     sideLabel(row.household.side),
     kindLabel(row.household.kind),
     sent ? "Enviada" : "Sin enviar",
+    row.household.lastReminderAt
+      ? `${row.household.lastReminderAt.slice(0, 10)}${row.household.lastReminderBy ? ` · ${row.household.lastReminderBy}` : ""}`
+      : "",
     hotel,
     replyLabel(row.reply),
     row.rsvp?.attending ? planLabel(row.rsvp.people) : "—",

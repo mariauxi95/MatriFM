@@ -1251,6 +1251,31 @@ body[data-rsvp-done] #nav-my-rsvp {
   }
 }
 
+/* Wide screens: all six in one compact row. Phones keep the 2-column grid above. */
+@media (min-width: 760px) {
+  .travel-cat-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 0.7rem;
+  }
+
+  .travel-cat-card {
+    min-height: 104px;
+    padding: 0.85rem 0.5rem;
+    gap: 0.5rem;
+    border-radius: 16px;
+  }
+
+  .travel-cat-card svg,
+  .travel-cat-card img {
+    width: 40px;
+    height: 40px;
+  }
+
+  .travel-cat-card span {
+    font-size: 0.88rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .travel-cat-card,
   .travel-cat-card svg,
@@ -5194,13 +5219,13 @@ td {
   }
 
   .travel-cat-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1.1rem;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 0.8rem;
   }
 
   .travel-cat-card {
-    min-height: 168px;
-    padding: 2rem 1.25rem;
+    min-height: 112px;
+    padding: 0.9rem 0.5rem;
   }
 }
 

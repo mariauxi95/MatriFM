@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { createContext, useContext } from "react";
 import type { Session } from "@supabase/supabase-js";
 import type { Guest } from "../types";
-import { fetchIsAdmin, loadCurrentGuest } from "../lib/auth";
+import { fetchStaffRole, loadCurrentGuest, type StaffRole } from "../lib/auth";
 import { fetchRsvp } from "../lib/sheets";
 import { supabase } from "../lib/supabase";
 
@@ -12,6 +12,7 @@ type GuestContextValue = {
   guest: Guest | null;
   ready: boolean;
   isAdmin: boolean;
+  isPlanner: boolean;
   opened: boolean;
   hasReply: boolean;
   replyReady: boolean;
@@ -24,7 +25,7 @@ const GuestContext = createContext<GuestContextValue | null>(null);
 
 export function GuestProvider({ children }: { children: ReactNode }) {
   const [guest, setGuest] = useState<Guest | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [staffRole, setStaffRole] = useState<StaffRole>(null);
   const [ready, setReady] = useState(false);
   const [opened, setOpened] = useState(() => sessionStorage.getItem(OPENED) === "1");
   const [hasReply, setHasReply] = useState(false);
@@ -39,21 +40,21 @@ export function GuestProvider({ children }: { children: ReactNode }) {
       if (!session) {
         if (!alive || mine !== ticket) return;
         setGuest(null);
-        setIsAdmin(false);
+        setStaffRole(null);
         setHasReply(false);
         setReplyReady(true);
         setReady(true);
         return;
       }
       try {
-        const [nextGuest, admin] = await Promise.all([loadCurrentGuest(), fetchIsAdmin()]);
+        const [nextGuest, role] = await Promise.all([loadCurrentGuest(), fetchStaffRole()]);
         if (!alive || mine !== ticket) return;
         setGuest(nextGuest);
-        setIsAdmin(admin);
+        setStaffRole(role);
       } catch {
         if (!alive || mine !== ticket) return;
         setGuest(null);
-        setIsAdmin(false);
+        setStaffRole(null);
         setHasReply(false);
         setReplyReady(true);
       } finally {
@@ -96,7 +97,8 @@ export function GuestProvider({ children }: { children: ReactNode }) {
     () => ({
       guest,
       ready,
-      isAdmin,
+      isAdmin: staffRole === "admin",
+      isPlanner: staffRole === "planner",
       opened,
       hasReply,
       replyReady,
@@ -112,7 +114,7 @@ export function GuestProvider({ children }: { children: ReactNode }) {
         await supabase.auth.signOut();
       },
     }),
-    [guest, ready, isAdmin, opened, hasReply, replyReady],
+    [guest, ready, staffRole, opened, hasReply, replyReady],
   );
 
   return <GuestContext.Provider value={value}>{children}</GuestContext.Provider>;

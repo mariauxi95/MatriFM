@@ -86,8 +86,10 @@ export async function loadCurrentGuest(): Promise<Guest | null> {
   };
 }
 
-export async function fetchIsAdmin(): Promise<boolean> {
-  const { data, error } = await supabase.rpc("is_admin");
-  if (error) return false;
-  return Boolean(data);
+export type StaffRole = "admin" | "planner" | null;
+
+export async function fetchStaffRole(): Promise<StaffRole> {
+  const { data, error } = await supabase.rpc("staff_role");
+  if (error) return null;
+  return data === "admin" || data === "planner" ? data : null;
 }

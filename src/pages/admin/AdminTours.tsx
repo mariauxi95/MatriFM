@@ -35,11 +35,14 @@ function tourTitle(id: string, fallback: string) {
 }
 
 export function AdminTours({
+  readOnly = false,
   reservations,
   households,
   onOpenHousehold,
   onReload,
 }: {
+  /** The planner: no emails and no payment buttons. */
+  readOnly?: boolean;
   reservations: AdminTourReservation[];
   households: AdminHousehold[];
   onOpenHousehold: (householdId: string) => void;
@@ -124,7 +127,7 @@ export function AdminTours({
   }
 
   function downloadExcel() {
-    const headers = ["Fecha", "Persona", "Email", "Invitación", "Tour", "Fecha del tour", "Personas", "Niños", "Precio por persona", "Monto", "Estado"];
+    const headers = ["Fecha", "Persona", ...(readOnly ? [] : ["Email"]), "Invitación", "Tour", "Fecha del tour", "Personas", "Niños", "Precio por persona", "Monto", "Estado"];
     const rows = [...reservations]
       .sort((a, b) => b.registrationDate.localeCompare(a.registrationDate))
       .map((row) => {
@@ -132,7 +135,7 @@ export function AdminTours({
         return [
           formatWhen(row.registrationDate, true),
           row.guestName,
-          row.email,
+          ...(readOnly ? [] : [row.email]),
           house?.displayName ?? "",
           tourTitle(row.tourId, row.tourName),
           row.tourDate,
@@ -211,7 +214,7 @@ export function AdminTours({
         <div className="admin-toolbar-row">
           <label className="admin-search">
             <span className="sr-only">Buscar tours</span>
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar persona, email o tour" />
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={readOnly ? "Buscar persona o tour" : "Buscar persona, email o tour"} />
           </label>
           <label className="admin-gift-field">
             <span className="sr-only">Tour</span>
@@ -321,7 +324,7 @@ export function AdminTours({
                       <td>{formatWhen(row.registrationDate)}</td>
                       <td>
                         <b>{row.guestName.trim() || "Sin nombre"}</b>
-                        <small>{row.email.trim() || "Sin email"}</small>
+                        {readOnly ? null : <small>{row.email.trim() || "Sin email"}</small>}
                       </td>
                       <td>
                         {house ? (
@@ -358,10 +361,12 @@ export function AdminTours({
                               <dt>Inscripción</dt>
                               <dd>{formatWhen(row.registrationDate, true)}</dd>
                             </div>
-                            <div>
-                              <dt>Email</dt>
-                              <dd>{row.email.trim() || "—"}</dd>
-                            </div>
+                            {readOnly ? null : (
+                              <div>
+                                <dt>Email</dt>
+                                <dd>{row.email.trim() || "—"}</dd>
+                              </div>
+                            )}
                             <div>
                               <dt>Precio por persona</dt>
                               <dd>{formatCop(row.pricePerPerson)}</dd>
@@ -371,7 +376,7 @@ export function AdminTours({
                               <dd>{row.tourDate || "—"}</dd>
                             </div>
                           </dl>
-                          <div className="admin-pay-actions">
+                          <div className="admin-pay-actions" hidden={readOnly}>
                             {row.paymentStatus === "Pagado" ? (
                               <button
                                 className="admin-btn admin-btn-ghost"
