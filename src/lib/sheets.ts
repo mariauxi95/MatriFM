@@ -502,6 +502,19 @@ export async function submitTourReservation(
   return mapTour(data as TourRow);
 }
 
+/** The tours already booked by the signed-in guest's invitation (anyone on it may have booked). */
+export async function fetchMyTourReservations(): Promise<TourReservation[]> {
+  const household = await householdId();
+  if (!household) return [];
+  const { data, error } = await supabase
+    .from("tour_reservations")
+    .select("*")
+    .eq("household_id", household)
+    .order("registration_date");
+  fail(error);
+  return ((data ?? []) as TourRow[]).map(mapTour);
+}
+
 export type AdminRsvp = RsvpRecord & { householdId: string };
 
 export async function adminClearRsvp(householdId: string) {

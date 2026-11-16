@@ -114,6 +114,13 @@ export function Gifts() {
                 <li>
                   <span>3</span>
                   <div>
+                    <b>{t("giftsStepTransferTitle")}</b>
+                    <p>{t("giftsStepTransferBody")}</p>
+                  </div>
+                </li>
+                <li>
+                  <span>4</span>
+                  <div>
                     <b>{t("giftsStep3Title")}</b>
                     <p>{t("giftsStep3Body")}</p>
                   </div>

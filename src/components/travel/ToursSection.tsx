@@ -1,7 +1,8 @@
-import { useState, type FormEvent, type SVGProps } from "react";
+import { useCallback, useEffect, useState, type FormEvent, type SVGProps } from "react";
 import { useGuest } from "../../context/GuestSession";
 import { formatCop, formatTourPrice, tourPaymentUrl, tours, type Tour } from "../../data/tours";
-import { submitTourReservation } from "../../lib/sheets";
+import { fetchMyTourReservations, submitTourReservation } from "../../lib/sheets";
+import type { TourReservation } from "../../types";
 
 type Step = "details" | "form" | "success";
 
@@ -57,6 +58,21 @@ export function ToursSection({ onBack }: { onBack: () => void }) {
   const { guest } = useGuest();
   const [tour, setTour] = useState<Tour | null>(null);
   const [step, setStep] = useState<Step>("details");
+  const [booked, setBooked] = useState<TourReservation[]>([]);
+
+  const loadBooked = useCallback(async () => {
+    try {
+      setBooked(await fetchMyTourReservations());
+    } catch {
+      setBooked([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (guest) void loadBooked();
+  }, [guest, loadBooked]);
+
+  const bookedFor = (id: string) => booked.find((item) => item.tourId === id) ?? null;
 
   function open(next: Tour) {
     setTour(next);
@@ -106,6 +122,7 @@ export function ToursSection({ onBack }: { onBack: () => void }) {
             <div className="tour-body">
               <h3>{item.title}</h3>
               <p className="tour-subtitle">{item.subtitle}</p>
+              {bookedFor(item.id) ? <p className="tour-booked">{bookedLabel(bookedFor(item.id)!)}</p> : null}
               <ul className="tour-meta">
                 <li>
                   <IconDate />
@@ -154,7 +171,7 @@ export function ToursSection({ onBack }: { onBack: () => void }) {
             onClick={(event) => event.stopPropagation()}
           >
             {step === "details" ? (
-              <TourDetails tour={tour} onClose={close} onJoin={() => setStep("form")} />
+              <TourDetails tour={tour} booked={bookedFor(tour.id)} onClose={close} onJoin={() => setStep("form")} />
             ) : null}
             {step === "form" ? (
               <TourForm
@@ -162,7 +179,10 @@ export function ToursSection({ onBack }: { onBack: () => void }) {
                 defaultName={guest?.fullName || guest?.displayName || ""}
                 defaultEmail={guest?.email || ""}
                 onBack={() => setStep("details")}
-                onSaved={() => setStep("success")}
+                onSaved={() => {
+                  void loadBooked();
+                  setStep("success");
+                }}
               />
             ) : null}
             {step === "success" ? <TourSuccess tour={tour} onClose={close} /> : null}
@@ -173,7 +193,22 @@ export function ToursSection({ onBack }: { onBack: () => void }) {
   );
 }
 
-function TourDetails({ tour, onClose, onJoin }: { tour: Tour; onClose: () => void; onJoin: () => void }) {
+function bookedLabel(item: TourReservation) {
+  const people = `${item.quantity} ${item.quantity === 1 ? "persona" : "personas"}`;
+  return `Ya inscritos: ${item.guestName.trim() || "tu invitación"} · ${people}`;
+}
+
+function TourDetails({
+  tour,
+  booked,
+  onClose,
+  onJoin,
+}: {
+  tour: Tour;
+  booked: TourReservation | null;
+  onClose: () => void;
+  onJoin: () => void;
+}) {
   return (
     <>
       <p className="eyebrow">{tour.date}</p>
@@ -211,13 +246,21 @@ function TourDetails({ tour, onClose, onJoin }: { tour: Tour; onClose: () => voi
         <p>{tour.description}</p>
       )}
       {tour.note ? <p className="tour-note">{tour.note}</p> : null}
+      {booked ? (
+        <p className="tour-booked tour-booked-note">
+          Tu invitación ya está inscrita en este tour. {bookedLabel(booked)}. Si quieren cambiar algo, escríbannos por el
+          WhatsApp de la tripulación.
+        </p>
+      ) : null}
       <div className="choice-grid">
         <button className="btn ghost" type="button" onClick={onClose}>
           Cerrar
         </button>
-        <button className="btn" type="button" onClick={onJoin}>
-          Quiero sumarme
-        </button>
+        {booked ? null : (
+          <button className="btn" type="button" onClick={onJoin}>
+            Quiero sumarme
+          </button>
+        )}
       </div>
     </>
   );
@@ -281,8 +324,13 @@ function TourForm({
         paymentLink: tourPaymentUrl(tour),
       });
       onSaved();
-    } catch {
-      setError("No pudimos guardar tu inscripción. Inténtalo de nuevo.");
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message.toLowerCase() : "";
+      setError(
+        message.includes("duplicate") || message.includes("unique")
+          ? "Tu invitación ya tiene una inscripción para este tour. Cierra esta ventana para verla."
+          : "No pudimos guardar tu inscripción. Inténtalo de nuevo.",
+      );
       setSubmitting(false);
     }
   }

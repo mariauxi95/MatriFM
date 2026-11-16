@@ -133,6 +133,9 @@ export const messages = {
     giftsStep2Title: "Aporten",
     giftsStep2Body:
       "El monto que quieran y la moneda que les acomode. No es necesario completar el valor total.",
+    giftsStepTransferTitle: "Transfieran y avísennos",
+    giftsStepTransferBody:
+      "Copien los datos de la transferencia, hagan el aporte y avísennos aquí para que podamos seguirlo y agradecerles como se merecen.",
     giftsStep3Title: "Súmense al regalo",
     giftsStep3Body: "Cada aporte se acumula hasta acercarnos a hacerlo realidad.",
     giftsCta: "Ver nuestra wishlist",
@@ -618,6 +621,9 @@ export const messages = {
     giftsStep1Body: "An experience, a trip, or a little luxury you like.",
     giftsStep2Title: "Contribute",
     giftsStep2Body: "Any amount, in the currency that works for you. You don't need to cover the full value.",
+    giftsStepTransferTitle: "Transfer and let us know",
+    giftsStepTransferBody:
+      "Copy the transfer details, send your contribution, and tell us here so we can track it and thank you properly.",
     giftsStep3Title: "Join the gift",
     giftsStep3Body: "Every contribution adds up until we can make it real.",
     giftsCta: "See our wishlist",
